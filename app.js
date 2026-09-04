@@ -21,6 +21,7 @@ const MENU_TEMPLATE = [
     evening: "שקשוקה + סלט",
     notes: "אימון קפיצה בחבל + מתח — חלבון אחרי (יוגורט/ביצים)",
     protein: 145, fast: true,
+    meals: { morning: "m-bowl", noon: "m-chicken", evening: "m-shakshuka" },
   },
   { // שני
     morning: "2 ביצים קשות + קוטג׳ + ירקות",
@@ -28,6 +29,7 @@ const MENU_TEMPLATE = [
     evening: "מרק עדשים + יוגורט יווני",
     notes: "",
     protein: 135, fast: false,
+    meals: { morning: "m-eggs-cottage", noon: "m-asado-rice", evening: "m-lentil-yogurt" },
   },
   { // שלישי
     morning: "אופציה לצום 16:8 — רק קפה, או קערת חלבון: יוגורט יווני + אבקת וניל + תערובת שקדים, אגוזים ופירות יבשים",
@@ -35,6 +37,7 @@ const MENU_TEMPLATE = [
     evening: "חביתה + סלט + פרוסת לחם מלא",
     notes: "אימון משקולות — ארוחת צהריים גדולה יותר ביום אימון",
     protein: 130, fast: true,
+    meals: { morning: "m-bowl", noon: "m-chicken", evening: "m-omelette-bread" },
   },
   { // רביעי
     morning: "קוטג׳ + ירקות + פרוסת לחם מלא",
@@ -42,6 +45,7 @@ const MENU_TEMPLATE = [
     evening: "סלט טונה עם ביצה",
     notes: "",
     protein: 135, fast: false,
+    meals: { morning: "m-cottage-bread", noon: "m-asado-rice", evening: "m-tuna" },
   },
   { // חמישי
     morning: "קערת חלבון: יוגורט יווני + אבקת וניל + תערובת שקדים, אגוזים ופירות יבשים",
@@ -49,6 +53,7 @@ const MENU_TEMPLATE = [
     evening: "שקשוקה + סלט",
     notes: "אימון משקולות. לתכנן בישולים לשבוע הבא",
     protein: 140, fast: false,
+    meals: { morning: "m-bowl", noon: "m-lentil-chicken", evening: "m-shakshuka" },
   },
   { // שישי
     morning: "— (דילוג — יוצא צום 16:8 בפועל)",
@@ -56,6 +61,7 @@ const MENU_TEMPLATE = [
     evening: "אסאדו בריבת בצל + אורז + סלט גדול",
     notes: "יום בישולים: אסאדו בתנור (3 שעות), אורז, ביצים קשות, מרק עדשים להקפאה",
     protein: 105, fast: false,
+    meals: { morning: null, noon: "m-snack", evening: "m-asado-rice" },
   },
   { // שבת
     morning: "חביתה 2-3 ביצים + קוטג׳ + ירקות",
@@ -63,6 +69,7 @@ const MENU_TEMPLATE = [
     evening: "סלט טונה עם ביצה קשה וירקות",
     notes: "להקפיא 2-3 מנות אסאדו + מנות מרק עדשים",
     protein: 140, fast: false,
+    meals: { morning: "m-omelette-cottage", noon: "m-asado-rice", evening: "m-tuna" },
   },
 ];
 
@@ -90,15 +97,43 @@ const DEFAULT_PRODUCTS = [
   { id: "p-bread",   name: "לחם מלא",             protein100: 13,   cal100: 250, unitName: "פרוסה",  unitGrams: 35 },
   { id: "p-veg",     name: "ירקות / סלט",         protein100: 1.5,  cal100: 25 },
 ];
+/* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
   { id: "m-bowl", name: "קערת חלבון", items: [
     { productId: "p-yogurt", grams: 200 }, { productId: "p-powder", grams: 30 }, { productId: "p-almonds", grams: 20 },
   ]},
+  { id: "m-chicken", name: "חזה עוף + אורז + ירקות", items: [
+    { productId: "p-chicken", grams: 180 }, { productId: "p-rice", grams: 200 }, { productId: "p-veg", grams: 150 },
+  ]},
   { id: "m-tuna", name: "סלט טונה עם ביצה", items: [
     { productId: "p-tuna", grams: 105 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 150 },
   ]},
-  { id: "m-chicken", name: "חזה עוף + אורז + ירקות", items: [
-    { productId: "p-chicken", grams: 150 }, { productId: "p-rice", grams: 200 }, { productId: "p-veg", grams: 150 },
+  { id: "m-shakshuka", name: "שקשוקה + סלט", items: [
+    { productId: "p-egg", grams: 165 }, { productId: "p-veg", grams: 250 },
+  ]},
+  { id: "m-eggs-cottage", name: "2 ביצים קשות + קוטג׳ + ירקות", items: [
+    { productId: "p-egg", grams: 110 }, { productId: "p-cottage", grams: 100 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-omelette-cottage", name: "חביתה + קוטג׳ + ירקות", items: [
+    { productId: "p-egg", grams: 140 }, { productId: "p-cottage", grams: 100 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-omelette-bread", name: "חביתה + סלט + לחם מלא", items: [
+    { productId: "p-egg", grams: 110 }, { productId: "p-veg", grams: 150 }, { productId: "p-bread", grams: 35 },
+  ]},
+  { id: "m-cottage-bread", name: "קוטג׳ + ירקות + לחם מלא", items: [
+    { productId: "p-cottage", grams: 125 }, { productId: "p-veg", grams: 100 }, { productId: "p-bread", grams: 35 },
+  ]},
+  { id: "m-asado-rice", name: "אסאדו + אורז + סלט", items: [
+    { productId: "p-asado", grams: 180 }, { productId: "p-rice", grams: 200 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-lentil-yogurt", name: "מרק עדשים + יוגורט יווני", items: [
+    { productId: "p-lentil", grams: 300 }, { productId: "p-yogurt", grams: 150 },
+  ]},
+  { id: "m-lentil-chicken", name: "מרק עדשים + חזה עוף", items: [
+    { productId: "p-lentil", grams: 300 }, { productId: "p-chicken", grams: 100 },
+  ]},
+  { id: "m-snack", name: "יוגורט + ביצה קשה וירקות", items: [
+    { productId: "p-yogurt", grams: 150 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 100 },
   ]},
 ];
 
@@ -111,6 +146,7 @@ if (!state.products) {
   save();
 }
 
+const SLOT_KEYS = ["morning", "noon", "evening"];
 const productById = (id) => state.products.find((p) => p.id === id);
 const mealById = (id) => state.meals.find((m) => m.id === id);
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -127,6 +163,33 @@ function mealCal(meal) {
   }, 0));
 }
 function newId(prefix) { return prefix + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+/* שדרוג נתונים קיימים: הוספת ארוחות/מוצרים חדשים וקישור ימים שלא נערכו */
+if ((state.seedV || 1) < 2) {
+  for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
+  for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
+  for (const wk of Object.values(state.weeks || {})) {
+    wk.days.forEach((day, i) => {
+      const t = MENU_TEMPLATE[i];
+      day.mealIds = day.mealIds || {};
+      day.slotProtein = day.slotProtein || {};
+      for (const slot of SLOT_KEYS) {
+        // מקשרים רק ארוחות שהטקסט שלהן לא שונה מהתבנית המקורית
+        if (!day.mealIds[slot] && t.meals && t.meals[slot] && day[slot] === t[slot]) {
+          const meal = mealById(t.meals[slot]);
+          if (meal) {
+            day.mealIds[slot] = t.meals[slot];
+            day.slotProtein[slot] = mealProtein(meal);
+          }
+        }
+      }
+      const vals = SLOT_KEYS.map((s) => day.slotProtein[s]).filter((v) => v != null);
+      if (vals.length) day.protein = Math.round(vals.reduce((a, b) => a + b, 0));
+    });
+  }
+  state.seedV = 2;
+  save();
+}
 
 function load() {
   try {
@@ -163,10 +226,19 @@ function defaultWorkoutDate() {
 
 /* ---------- שבוע תפריט ---------- */
 function blankDayFrom(t) {
+  const mealIds = {}, slotProtein = {};
+  for (const slot of SLOT_KEYS) {
+    const meal = t.meals && t.meals[slot] ? mealById(t.meals[slot]) : null;
+    mealIds[slot] = meal ? t.meals[slot] : null;
+    slotProtein[slot] = meal ? mealProtein(meal) : null;
+  }
+  const vals = SLOT_KEYS.map((s) => slotProtein[s]).filter((v) => v != null);
   return {
     morning: t.morning, noon: t.noon, evening: t.evening, notes: t.notes,
-    protein: t.protein, fast: t.fast,
+    protein: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0)) : t.protein,
+    fast: t.fast,
     eaten: { morning: false, noon: false, evening: false },
+    mealIds, slotProtein,
   };
 }
 function ensureWeek(weekKey) {
@@ -185,6 +257,8 @@ function copyPrevWeek(weekKey) {
       morning: d.morning, noon: d.noon, evening: d.evening, notes: d.notes,
       protein: d.protein, fast: d.fast,
       eaten: { morning: false, noon: false, evening: false },
+      mealIds: JSON.parse(JSON.stringify(d.mealIds || {})),
+      slotProtein: JSON.parse(JSON.stringify(d.slotProtein || {})),
     })),
   };
   save();
