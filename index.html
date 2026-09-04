@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101418">
+<title>המעקב של עדן</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <!-- ===== מסך תפריט ===== -->
+  <section id="screen-menu" class="screen">
+    <header class="topbar">
+      <button id="week-prev" class="iconbtn" title="שבוע קודם">‹</button>
+      <div class="topbar-title">
+        <h1>תפריט שבועי</h1>
+        <div id="week-label" class="subtitle"></div>
+      </div>
+      <button id="week-next" class="iconbtn" title="שבוע הבא">›</button>
+    </header>
+    <div class="toolbar">
+      <button id="btn-copy-week" class="btn small">📋 שכפל שבוע קודם</button>
+      <button id="btn-reset-week" class="btn small ghost">↺ אפס לתבנית</button>
+    </div>
+    <div id="menu-days"></div>
+    <p class="footnote">יעד: ‏130–140 ג׳ חלבון ביום, ‏~1,800–2,000 קלוריות (הערכה בלבד). צום 16:8 = דילוג על בוקר ואכילה בין 12:00 ל־20:00.</p>
+  </section>
+
+  <!-- ===== מסך אימונים ===== -->
+  <section id="screen-workout" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>לוג אימונים</h1>
+        <div class="subtitle">ראשון · שלישי · חמישי</div>
+      </div>
+    </header>
+
+    <div id="workout-day-chips" class="chips"></div>
+
+    <div class="card note-card">
+      <b>כלל ההתקדמות:</b> כל שבוע מוסיפים <u>דבר אחד בלבד</u> — או חזרה, או משקל, או 30 שניות חבל.
+      שבועיים ראשונים בעומס נמוך (חזרה מהפסקה).
+    </div>
+
+    <!-- קפיצה בחבל -->
+    <div class="card">
+      <div class="card-head"><h2>🪢 קפיצה בחבל — אינטרוולים 30/30</h2></div>
+      <div class="timer-box">
+        <div id="rope-phase" class="timer-phase">מוכן?</div>
+        <div id="rope-clock" class="timer-clock">0:30</div>
+        <div id="rope-round" class="timer-round"></div>
+        <div class="timer-controls">
+          <label>סבבים
+            <input id="rope-rounds" type="number" min="1" max="60" value="10" inputmode="numeric">
+          </label>
+          <button id="rope-start" class="btn primary">▶ התחל</button>
+          <button id="rope-reset" class="btn ghost">↺</button>
+        </div>
+      </div>
+      <div class="row gap">
+        <label class="grow">זמן כולל שבוצע (דקות)
+          <input id="rope-minutes" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0">
+        </label>
+      </div>
+    </div>
+
+    <!-- משקולות -->
+    <div class="card">
+      <div class="card-head"><h2>🏋️ משקולות — פול־בודי</h2></div>
+      <div id="exercise-list"></div>
+    </div>
+
+    <!-- מתח -->
+    <div class="card">
+      <div class="card-head"><h2>💪 מתח</h2></div>
+      <p class="hint">התקדמות: שליליים ← גומייה (35 ק״ג) ← מתח מלא. אתה כבר ב־3–5 מלאים — סט ראשון מלא, השאר עם גומייה.</p>
+      <div id="pullup-list"></div>
+      <button id="pullup-add" class="btn small">+ הוסף סט</button>
+    </div>
+
+    <!-- טיימר מנוחה -->
+    <div class="card">
+      <div class="card-head"><h2>⏱️ טיימר מנוחה</h2></div>
+      <div class="row gap center">
+        <button class="btn rest-btn" data-sec="60">60 שנ׳</button>
+        <button class="btn rest-btn" data-sec="90">90 שנ׳</button>
+        <button class="btn rest-btn" data-sec="120">120 שנ׳</button>
+        <div id="rest-clock" class="rest-clock"></div>
+      </div>
+    </div>
+
+    <button id="btn-finish-workout" class="btn primary big">✅ סיים אימון</button>
+  </section>
+
+  <!-- ===== מסך התקדמות ===== -->
+  <section id="screen-progress" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title"><h1>התקדמות</h1></div>
+    </header>
+
+    <div class="card streak-card">
+      <div class="streak-num"><span id="streak-count">0</span> 🔥</div>
+      <div class="streak-label">רצף אימונים</div>
+      <div id="streak-detail" class="subtitle"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>חלבון יומי מול יעד (14 ימים)</h2></div>
+      <canvas id="chart-protein" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>משקלים לאורך זמן</h2>
+        <select id="chart-exercise-select"></select>
+      </div>
+      <canvas id="chart-weights" height="180"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>מתח — חזרות מלאות לאורך זמן</h2></div>
+      <canvas id="chart-pullups" height="160"></canvas>
+    </div>
+  </section>
+
+</main>
+
+<!-- ניווט תחתון -->
+<nav class="bottomnav">
+  <button data-screen="menu" class="navbtn active"><span>🍽️</span>תפריט</button>
+  <button data-screen="workout" class="navbtn"><span>🏋️</span>אימונים</button>
+  <button data-screen="progress" class="navbtn"><span>📈</span>התקדמות</button>
+</nav>
+
+<!-- מודאל עריכת יום -->
+<div id="modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="modal-title">עריכת יום</h2>
+    <label>בוקר<textarea id="edit-morning" rows="2"></textarea></label>
+    <label>צהריים<textarea id="edit-noon" rows="2"></textarea></label>
+    <label>ערב<textarea id="edit-evening" rows="2"></textarea></label>
+    <label>הערות<textarea id="edit-notes" rows="2"></textarea></label>
+    <label>הערכת חלבון (ג׳)<input id="edit-protein" type="number" min="0" max="300" inputmode="numeric"></label>
+    <label class="row check"><input id="edit-fast" type="checkbox"> יום צום 16:8</label>
+    <div class="row gap">
+      <button id="modal-save" class="btn primary grow">שמור</button>
+      <button id="modal-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
