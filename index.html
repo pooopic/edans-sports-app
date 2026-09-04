@@ -20,6 +20,7 @@
       <div class="topbar-title">
         <h1>תפריט שבועי</h1>
         <div id="week-label" class="subtitle"></div>
+        <div id="today-label" class="today-label"></div>
       </div>
       <button id="week-next" class="iconbtn" title="שבוע הבא">›</button>
     </header>
@@ -36,36 +37,67 @@
     <header class="topbar">
       <div class="topbar-title">
         <h1>לוג אימונים</h1>
-        <div class="subtitle">ראשון · שלישי · חמישי</div>
+        <div class="subtitle">אימון כל יום</div>
       </div>
     </header>
 
     <div id="workout-day-chips" class="chips"></div>
+    <div id="workout-day-type" class="day-type"></div>
 
     <div class="card note-card">
       <b>כלל ההתקדמות:</b> כל שבוע מוסיפים <u>דבר אחד בלבד</u> — או חזרה, או משקל, או 30 שניות חבל.
       שבועיים ראשונים בעומס נמוך (חזרה מהפסקה).
+      <br><b>מבנה שבועי:</b> משקולות פול־בודי בימים א׳/ג׳/ה׳ — בשאר הימים חבל, מתח וליבה, כדי שהשרירים יספיקו להתאושש.
     </div>
 
     <!-- קפיצה בחבל -->
     <div class="card">
-      <div class="card-head"><h2>🪢 קפיצה בחבל — אינטרוולים 30/30</h2></div>
-      <div class="timer-box">
-        <div id="rope-phase" class="timer-phase">מוכן?</div>
-        <div id="rope-clock" class="timer-clock">0:30</div>
-        <div id="rope-round" class="timer-round"></div>
-        <div class="timer-controls">
-          <label>סבבים
-            <input id="rope-rounds" type="number" min="1" max="60" value="10" inputmode="numeric">
-          </label>
-          <button id="rope-start" class="btn primary">▶ התחל</button>
-          <button id="rope-reset" class="btn ghost">↺</button>
+      <div class="card-head">
+        <h2>🪢 קפיצה בחבל</h2>
+        <div class="mode-toggle">
+          <button id="rope-mode-count" class="mode-btn">לפי קפיצות</button>
+          <button id="rope-mode-time" class="mode-btn">לפי זמן 30/30</button>
         </div>
       </div>
-      <div class="row gap">
-        <label class="grow">זמן כולל שבוצע (דקות)
-          <input id="rope-minutes" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0">
-        </label>
+
+      <!-- מצב ספירה: אתה סופר (גם עם מוזיקה), האפליקציה רושמת סטים -->
+      <div id="rope-count-box">
+        <div class="row gap">
+          <label class="grow">קפיצות בסט
+            <input id="rope-jumps-per-set" type="number" min="10" step="10" value="50" inputmode="numeric">
+          </label>
+          <label class="grow">יעד סטים
+            <input id="rope-target-sets" type="number" min="1" value="6" inputmode="numeric">
+          </label>
+        </div>
+        <div class="count-display">
+          <div class="count-total"><span id="rope-sets-done">0</span> סטים · <span id="rope-total-jumps">0</span> קפיצות</div>
+        </div>
+        <div class="row gap">
+          <button id="rope-set-done" class="btn primary grow big-tap">✔ סיימתי סט</button>
+          <button id="rope-set-undo" class="btn ghost">−</button>
+        </div>
+      </div>
+
+      <!-- מצב זמן: טיימר אינטרוולים -->
+      <div id="rope-time-box" class="hidden">
+        <div class="timer-box">
+          <div id="rope-phase" class="timer-phase">מוכן?</div>
+          <div id="rope-clock" class="timer-clock">0:30</div>
+          <div id="rope-round" class="timer-round"></div>
+          <div class="timer-controls">
+            <label>סבבים
+              <input id="rope-rounds" type="number" min="1" max="60" value="10" inputmode="numeric">
+            </label>
+            <button id="rope-start" class="btn primary">▶ התחל</button>
+            <button id="rope-reset" class="btn ghost">↺</button>
+          </div>
+        </div>
+        <div class="row gap">
+          <label class="grow">זמן כולל שבוצע (דקות)
+            <input id="rope-minutes" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0">
+          </label>
+        </div>
       </div>
     </div>
 

@@ -7,7 +7,9 @@
 
 const STORE_KEY = "edan-tracker-v1";
 const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
-const WORKOUT_DAYS = [0, 2, 4]; // ראשון, שלישי, חמישי
+const WORKOUT_DAYS = [0, 1, 2, 3, 4, 5, 6]; // אימון כל יום
+const STRENGTH_DAYS = [0, 2, 4]; // ימי משקולות מומלצים: ראשון, שלישי, חמישי
+const DAY_SHORT = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 const PROTEIN_MIN = 130;
 const PROTEIN_MAX = 140;
 
@@ -107,16 +109,7 @@ let currentWeekKey = weekKeyOf(new Date());
 let currentWorkoutDate = defaultWorkoutDate();
 
 function defaultWorkoutDate() {
-  // ברירת מחדל: היום אם הוא יום אימון, אחרת יום האימון הקרוב בשבוע הנוכחי
-  const t = new Date();
-  if (WORKOUT_DAYS.includes(t.getDay())) return iso(t);
-  const wk = weekKeyOf(t);
-  for (const wd of WORKOUT_DAYS) {
-    const d = addDays(wk, wd);
-    if (d >= todayIso()) return d;
-  }
-  // כל ימי האימון של השבוע כבר עברו — בוחרים את האחרון שבהם
-  return addDays(wk, WORKOUT_DAYS[WORKOUT_DAYS.length - 1]);
+  return todayIso(); // אימון כל יום — ברירת המחדל היא היום
 }
 
 /* ---------- שבוע תפריט ---------- */
@@ -166,7 +159,11 @@ function ensureWorkout(dateIso) {
       ? prev.pullups.map((s) => ({ type: s.type, reps: s.reps }))
       : [ { type: PULLUP_TYPES[0], reps: 3 }, { type: PULLUP_TYPES[1], reps: 6 }, { type: PULLUP_TYPES[1], reps: 6 } ];
     state.workouts[dateIso] = {
+      ropeMode: prev ? (prev.ropeMode || "count") : "count",
       ropeMinutes: 0, ropeRounds: 10,
+      ropeJumpsPerSet: prev ? (prev.ropeJumpsPerSet || 50) : 50,
+      ropeTargetSets: prev ? (prev.ropeTargetSets || 6) : 6,
+      ropeSetsDone: 0,
       exercises, pullups,
       done: false,
     };
@@ -215,10 +212,14 @@ const MEALS = [
   { key: "evening", label: "ערב" },
 ];
 
+let scrolledToToday = false;
+
 function renderMenu() {
   const week = ensureWeek(currentWeekKey);
   const endKey = addDays(currentWeekKey, 6);
   $("#week-label").textContent = `${shortDate(currentWeekKey)} – ${shortDate(endKey)}`;
+  const now = new Date();
+  $("#today-label").textContent = `היום: יום ${DAY_NAMES[now.getDay()]}, ${shortDate(todayIso())}`;
 
   const wrap = $("#menu-days");
   wrap.innerHTML = "";
@@ -295,6 +296,13 @@ function renderMenu() {
     card.appendChild(prow);
     wrap.appendChild(card);
   });
+
+  // בפתיחה הראשונה גוללים ליום הנוכחי
+  if (!scrolledToToday) {
+    scrolledToToday = true;
+    const todayCard = wrap.querySelector(".day-card.today");
+    if (todayCard) setTimeout(() => todayCard.scrollIntoView({ block: "start", behavior: "smooth" }), 100);
+  }
 }
 
 function escapeHtml(s) {
@@ -336,9 +344,12 @@ function renderWorkout() {
   renderWorkoutChips();
   const w = ensureWorkout(currentWorkoutDate);
 
-  $("#rope-minutes").value = w.ropeMinutes || "";
-  $("#rope-rounds").value = w.ropeRounds || 10;
+  const wd = fromIso(currentWorkoutDate).getDay();
+  $("#workout-day-type").textContent = STRENGTH_DAYS.includes(wd)
+    ? "💪 יום משקולות: פול־בודי + חבל + מתח"
+    : "🪢 יום קל: חבל + מתח (בלי משקולות — מנוחה לשרירים)";
 
+  renderRope(w);
   renderExercises(w);
   renderPullups(w);
 
@@ -356,8 +367,9 @@ function renderWorkoutChips() {
     const chip = document.createElement("button");
     chip.className = "chip"
       + (dateIso === currentWorkoutDate ? " active" : "")
+      + (dateIso === todayIso() ? " today" : "")
       + (state.workouts[dateIso] && state.workouts[dateIso].done ? " done" : "");
-    chip.textContent = `${DAY_NAMES[wd]} ${shortDate(dateIso)}`;
+    chip.textContent = `${DAY_SHORT[wd]} ${shortDate(dateIso)}`;
     chip.addEventListener("click", () => { currentWorkoutDate = dateIso; renderWorkout(); });
     wrap.appendChild(chip);
   }
@@ -372,6 +384,56 @@ function renderWorkoutChips() {
   });
   wrap.appendChild(dateChip);
 }
+
+/* ---------- חבל: מצב ספירה / מצב זמן ---------- */
+function renderRope(w) {
+  const mode = w.ropeMode || "count";
+  $("#rope-mode-count").classList.toggle("active", mode === "count");
+  $("#rope-mode-time").classList.toggle("active", mode === "time");
+  $("#rope-count-box").classList.toggle("hidden", mode !== "count");
+  $("#rope-time-box").classList.toggle("hidden", mode !== "time");
+
+  $("#rope-jumps-per-set").value = w.ropeJumpsPerSet || 50;
+  $("#rope-target-sets").value = w.ropeTargetSets || 6;
+  $("#rope-sets-done").textContent = w.ropeSetsDone || 0;
+  $("#rope-total-jumps").textContent = (w.ropeSetsDone || 0) * (w.ropeJumpsPerSet || 50);
+
+  $("#rope-minutes").value = w.ropeMinutes || "";
+  $("#rope-rounds").value = w.ropeRounds || 10;
+}
+
+$("#rope-mode-count").addEventListener("click", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeMode = "count"; save(); renderRope(w);
+});
+$("#rope-mode-time").addEventListener("click", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeMode = "time"; save(); renderRope(w);
+});
+$("#rope-jumps-per-set").addEventListener("input", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeJumpsPerSet = parseInt($("#rope-jumps-per-set").value, 10) || 50;
+  save(); renderRope(w);
+});
+$("#rope-target-sets").addEventListener("input", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeTargetSets = parseInt($("#rope-target-sets").value, 10) || 6;
+  save();
+});
+$("#rope-set-done").addEventListener("click", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeSetsDone = (w.ropeSetsDone || 0) + 1;
+  save(); renderRope(w);
+  beep(880, 0.15);
+  if (w.ropeSetsDone === (w.ropeTargetSets || 6)) {
+    setTimeout(() => beep(1100, 0.2), 180); setTimeout(() => beep(1320, 0.3), 380);
+  }
+});
+$("#rope-set-undo").addEventListener("click", () => {
+  const w = ensureWorkout(currentWorkoutDate);
+  w.ropeSetsDone = Math.max(0, (w.ropeSetsDone || 0) - 1);
+  save(); renderRope(w);
+});
 
 $("#rope-minutes").addEventListener("input", () => {
   const w = ensureWorkout(currentWorkoutDate);
@@ -506,6 +568,7 @@ $("#btn-finish-workout").addEventListener("click", () => {
 /* ---------- צלילים ---------- */
 let audioCtx = null;
 function beep(freq = 880, dur = 0.15) {
+  try { if (navigator.vibrate) navigator.vibrate(120); } catch (e) {}
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const o = audioCtx.createOscillator();

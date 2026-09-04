@@ -174,7 +174,33 @@ body {
   font-family: inherit;
 }
 .chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.chip.today { background: var(--accent-dim); }
 .chip.done::after { content: " ✓"; color: var(--accent); }
+
+.today-label { color: var(--accent); font-size: 0.8rem; margin-top: 2px; font-weight: 700; }
+.day-type {
+  text-align: center;
+  color: var(--warn);
+  font-size: 0.85rem;
+  margin: -4px 0 10px;
+}
+
+.mode-toggle { display: flex; gap: 4px; }
+.mode-btn {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+.mode-btn.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+.count-display { text-align: center; padding: 12px 0; }
+.count-total { font-size: 1.3rem; font-weight: 700; }
+.count-total span { color: var(--accent); font-size: 1.6rem; }
+.big-tap { padding: 16px; font-size: 1.1rem; }
 
 .timer-box { text-align: center; padding: 6px 0 10px; }
 .timer-phase { font-size: 1rem; color: var(--muted); }
