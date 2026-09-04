@@ -282,6 +282,37 @@ canvas { width: 100%; display: block; }
 .navbtn span { font-size: 1.3rem; }
 .navbtn.active { color: var(--accent); }
 
+/* ---- shopping ---- */
+.shop-cat {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin: 14px 4px 4px;
+}
+.shop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 6px;
+}
+.shop-item input[type="checkbox"] {
+  width: 24px; height: 24px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.shop-item.checked { opacity: 0.55; }
+.shop-item.checked .shop-name { text-decoration: line-through; }
+.shop-body { flex: 1; }
+.shop-name { font-size: 0.95rem; font-weight: 600; }
+.shop-qty { color: var(--warn); font-size: 0.85rem; font-weight: 700; margin-inline-start: 6px; }
+.shop-notes { color: var(--muted); font-size: 0.76rem; margin-top: 2px; line-height: 1.4; }
+.shop-calc { color: var(--accent); font-size: 0.76rem; margin-top: 2px; }
+
 /* ---- food ---- */
 .food-item {
   display: flex;

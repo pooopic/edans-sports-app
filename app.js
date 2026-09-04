@@ -137,6 +137,35 @@ const DEFAULT_MEALS = [
   ]},
 ];
 
+/* ---------- רשימת קניות שבועית (יובאה מגיליון "רשימת קניות" באקסל) ---------- */
+const DEFAULT_SHOPPING = [
+  { cat: "בשר", name: "אסאדו (שפונדרה)", qty: "2-2.5 ק\"ג", notes: "לבישול היום בנינג׳ה + הקפאת מנות", productId: "p-asado" },
+  { cat: "בשר", name: "חזה עוף / פרגיות", qty: "1.5 ק\"ג", notes: "לאפייה בתנור מראש", productId: "p-chicken" },
+  { cat: "ביצים וחלב", name: "ביצים", qty: "תבנית 30", notes: "שקשוקות, חביתות, קשות", productId: "p-egg" },
+  { cat: "ביצים וחלב", name: "קוטג׳ 5%", qty: "3 יח׳", notes: "", productId: "p-cottage" },
+  { cat: "ביצים וחלב", name: "יוגורט יווני (פרו או דומה)", qty: "5-6 יח׳", notes: "חלבון גבוה", productId: "p-yogurt" },
+  { cat: "ירקות", name: "עגבניות", qty: "1.5 ק\"ג", notes: "סלטים + שקשוקה" },
+  { cat: "ירקות", name: "מלפפונים", qty: "1 ק\"ג", notes: "" },
+  { cat: "ירקות", name: "פלפלים", qty: "6-8 יח׳", notes: "סלט + אנטיפסטי" },
+  { cat: "ירקות", name: "בצל לבן", qty: "1.25 ק\"ג", notes: "לריבת הבצל של האסאדו" },
+  { cat: "ירקות", name: "בצל סגול", qty: "1.25 ק\"ג", notes: "לריבת הבצל של האסאדו" },
+  { cat: "ירקות", name: "תפוחי אדמה בייבי", qty: "800 ג׳", notes: "נכנסים בשעה האחרונה בתנור" },
+  { cat: "ירקות", name: "שום", qty: "ראש 1", notes: "" },
+  { cat: "ירקות", name: "גזר", qty: "0.5 ק\"ג", notes: "מרק + אנטיפסטי" },
+  { cat: "ירקות", name: "קישואים", qty: "3-4 יח׳", notes: "אנטיפסטי" },
+  { cat: "ירקות", name: "בטטה", qty: "2 יח׳", notes: "אנטיפסטי — פחמימה לימי אימון" },
+  { cat: "ירקות", name: "חסה / ירק עלים", qty: "1 יח׳", notes: "" },
+  { cat: "ירקות", name: "לימון", qty: "3 יח׳", notes: "" },
+  { cat: "ירקות", name: "פטרוזיליה / כוסברה", qty: "צרור", notes: "" },
+  { cat: "ירקות", name: "פרי (לבחירה)", qty: "5-6 יח׳", notes: "לארוחת בוקר חמישי ונשנוש" },
+  { cat: "יבשים ושימורים", name: "עדשים (ירוקות/כתומות)", qty: "500 ג׳", notes: "למרק להקפאה", productId: "p-lentil" },
+  { cat: "יבשים ושימורים", name: "טונה בשימורים", qty: "4 קופסאות", notes: "במים — פחות קלוריות", productId: "p-tuna" },
+  { cat: "יבשים ושימורים", name: "לחם מלא", qty: "1 יח׳", notes: "אפשר לפרוס ולהקפיא", productId: "p-bread" },
+  { cat: "יבשים ושימורים", name: "אורז", qty: "1 ק\"ג", notes: "בסיס לצהריים", productId: "p-rice" },
+  { cat: "יבשים ושימורים", name: "אבקת חלבון וניל", qty: "לבדוק שיש", notes: "לקערת החלבון", productId: "p-powder" },
+  { cat: "יבשים ושימורים", name: "שקדים ואגוזים", qty: "לבדוק שיש", notes: "לקערת החלבון", productId: "p-almonds" },
+];
+
 /* ============================ state ============================ */
 
 let state = load();
@@ -312,6 +341,7 @@ $$(".navbtn").forEach((btn) => {
     $("#screen-" + target).classList.remove("hidden");
     if (target === "menu") renderMenu();
     if (target === "workout") renderWorkout();
+    if (target === "shopping") renderShopping();
     if (target === "food") renderFood();
     if (target === "progress") renderProgress();
   });
@@ -871,6 +901,131 @@ $$(".rest-btn").forEach((btn) => {
       draw();
     }, 1000);
   });
+});
+
+/* ============================ מסך קניות ============================ */
+
+function ensureShopping(weekKey) {
+  if (!state.shopping) state.shopping = {};
+  if (!state.shopping[weekKey]) {
+    state.shopping[weekKey] = {
+      items: DEFAULT_SHOPPING.map((it) => ({ ...it, id: newId("s"), checked: false })),
+    };
+    save();
+  }
+  return state.shopping[weekKey];
+}
+
+/* כמה גרם מכל מוצר צריך השבוע, לפי הארוחות המקושרות בתפריט */
+function weekProductNeeds(weekKey) {
+  const week = state.weeks[weekKey];
+  const needs = {};
+  if (!week) return needs;
+  for (const day of week.days) {
+    for (const slot of SLOT_KEYS) {
+      const mealId = day.mealIds && day.mealIds[slot];
+      const meal = mealId ? mealById(mealId) : null;
+      if (!meal) continue;
+      for (const it of meal.items) needs[it.productId] = (needs[it.productId] || 0) + it.grams;
+    }
+  }
+  return needs;
+}
+
+function formatNeed(productId, grams) {
+  const p = productById(productId);
+  if (p && p.unitName && p.unitGrams) return `~${Math.ceil(grams / p.unitGrams)} ${p.unitName}`;
+  return grams >= 1000 ? `~${round1(grams / 1000)} ק״ג` : `~${Math.round(grams)} ג׳`;
+}
+
+function renderShopping() {
+  const list = ensureShopping(currentWeekKey);
+  const endKey = addDays(currentWeekKey, 6);
+  $("#shop-week-label").textContent = `${shortDate(currentWeekKey)} – ${shortDate(endKey)}`;
+  const bought = list.items.filter((i) => i.checked).length;
+  $("#shop-progress").textContent = `נקנו ${bought} מתוך ${list.items.length}`;
+
+  const needs = weekProductNeeds(currentWeekKey);
+  const wrap = $("#shopping-list");
+  wrap.innerHTML = "";
+  const cats = [...new Set(list.items.map((i) => i.cat))];
+  for (const cat of cats) {
+    const h = document.createElement("div");
+    h.className = "shop-cat";
+    h.textContent = cat;
+    wrap.appendChild(h);
+    for (const item of list.items.filter((i) => i.cat === cat)) {
+      const row = document.createElement("div");
+      row.className = "shop-item" + (item.checked ? " checked" : "");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = item.checked;
+      cb.addEventListener("change", () => {
+        item.checked = cb.checked;
+        save();
+        row.classList.toggle("checked", cb.checked);
+        const b = list.items.filter((i) => i.checked).length;
+        $("#shop-progress").textContent = `נקנו ${b} מתוך ${list.items.length}`;
+      });
+      const body = document.createElement("div");
+      body.className = "shop-body";
+      let html = `<span class="shop-name">${escapeHtml(item.name)}</span><span class="shop-qty">${escapeHtml(item.qty)}</span>`;
+      if (item.notes) html += `<div class="shop-notes">${escapeHtml(item.notes)}</div>`;
+      if (item.productId && needs[item.productId]) {
+        html += `<div class="shop-calc">לפי התפריט: ${formatNeed(item.productId, needs[item.productId])} לשבוע</div>`;
+      }
+      body.innerHTML = html;
+      const del = document.createElement("button");
+      del.className = "del-set";
+      del.textContent = "✕";
+      del.addEventListener("click", () => {
+        list.items = list.items.filter((i) => i.id !== item.id);
+        save();
+        renderShopping();
+      });
+      row.append(cb, body, del);
+      wrap.appendChild(row);
+    }
+  }
+}
+
+$("#shop-week-prev").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, -7); renderShopping(); });
+$("#shop-week-next").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, 7); renderShopping(); });
+$("#shop-reset").addEventListener("click", () => {
+  if (!confirm("לאפס את הרשימה לרשימה המקורית? (סימונים ופריטים שהוספת יימחקו)")) return;
+  delete state.shopping[currentWeekKey];
+  save();
+  renderShopping();
+});
+$("#shop-add").addEventListener("click", () => {
+  const list = ensureShopping(currentWeekKey);
+  const sel = $("#shop-item-cat");
+  sel.innerHTML = "";
+  for (const cat of [...new Set(list.items.map((i) => i.cat))].concat("אחר")) {
+    const opt = document.createElement("option");
+    opt.value = cat; opt.textContent = cat;
+    sel.appendChild(opt);
+  }
+  $("#shop-item-name").value = "";
+  $("#shop-item-qty").value = "";
+  $("#shop-modal").classList.remove("hidden");
+});
+$("#shop-item-cancel").addEventListener("click", () => $("#shop-modal").classList.add("hidden"));
+$("#shop-item-save").addEventListener("click", () => {
+  const name = $("#shop-item-name").value.trim();
+  if (!name) { alert("חסר שם לפריט."); return; }
+  const list = ensureShopping(currentWeekKey);
+  list.items.push({
+    id: newId("s"),
+    cat: $("#shop-item-cat").value,
+    name,
+    qty: $("#shop-item-qty").value.trim() || "",
+    notes: "",
+    checked: false,
+  });
+  save();
+  $("#shop-modal").classList.add("hidden");
+  renderShopping();
 });
 
 /* ============================ מסך מזון ============================ */

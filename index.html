@@ -129,6 +129,25 @@
     <button id="btn-finish-workout" class="btn primary big">✅ סיים אימון</button>
   </section>
 
+  <!-- ===== מסך קניות ===== -->
+  <section id="screen-shopping" class="screen hidden">
+    <header class="topbar">
+      <button id="shop-week-prev" class="iconbtn" title="שבוע קודם">‹</button>
+      <div class="topbar-title">
+        <h1>רשימת קניות</h1>
+        <div id="shop-week-label" class="subtitle"></div>
+        <div id="shop-progress" class="today-label"></div>
+      </div>
+      <button id="shop-week-next" class="iconbtn" title="שבוע הבא">›</button>
+    </header>
+    <div class="toolbar">
+      <button id="shop-add" class="btn small">+ הוסף פריט</button>
+      <button id="shop-reset" class="btn small ghost">↺ אפס רשימה</button>
+    </div>
+    <div id="shopping-list"></div>
+    <p class="footnote">"לפי התפריט" = כמות מחושבת מהארוחות המקושרות של אותו שבוע. שאר הכמויות — מרשימת הקניות שבאקסל.</p>
+  </section>
+
   <!-- ===== מסך מזון ===== -->
   <section id="screen-food" class="screen hidden">
     <header class="topbar">
@@ -193,6 +212,7 @@
 <nav class="bottomnav">
   <button data-screen="menu" class="navbtn active"><span>🍽️</span>תפריט</button>
   <button data-screen="workout" class="navbtn"><span>🏋️</span>אימונים</button>
+  <button data-screen="shopping" class="navbtn"><span>🛒</span>קניות</button>
   <button data-screen="food" class="navbtn"><span>🥗</span>מזון</button>
   <button data-screen="progress" class="navbtn"><span>📈</span>התקדמות</button>
 </nav>
@@ -265,6 +285,22 @@
       <button id="meal-save" class="btn primary grow">בדוק ושמור</button>
       <button id="meal-delete" class="btn ghost danger hidden">🗑️</button>
       <button id="meal-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל פריט קנייה -->
+<div id="shop-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>פריט חדש</h2>
+    <label>שם הפריט<input id="shop-item-name" type="text"></label>
+    <div class="row gap">
+      <label class="grow">כמות<input id="shop-item-qty" type="text" placeholder='2 יח׳ / 1 ק"ג'></label>
+      <label class="grow">קטגוריה<select id="shop-item-cat"></select></label>
+    </div>
+    <div class="row gap">
+      <button id="shop-item-save" class="btn primary grow">הוסף</button>
+      <button id="shop-item-cancel" class="btn ghost">ביטול</button>
     </div>
   </div>
 </div>
