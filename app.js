@@ -75,9 +75,58 @@ const EXERCISES = [
 ];
 const PULLUP_TYPES = ["מלא", "עם גומייה (35 ק״ג)", "שלילי (ירידה איטית)"];
 
+/* ---------- מאגר מוצרים התחלתי (ערכים תזונתיים סטנדרטיים, ל-100 ג׳) ---------- */
+const DEFAULT_PRODUCTS = [
+  { id: "p-egg",     name: "ביצה",                protein100: 12.6, cal100: 143, unitName: "ביצה",   unitGrams: 55 },
+  { id: "p-yogurt",  name: "יוגורט יווני 5%",     protein100: 9,    cal100: 97,  unitName: "גביע",   unitGrams: 150 },
+  { id: "p-cottage", name: "קוטג׳ 5%",            protein100: 11,   cal100: 98,  unitName: "גביע",   unitGrams: 250 },
+  { id: "p-chicken", name: "חזה עוף מבושל",       protein100: 31,   cal100: 165 },
+  { id: "p-asado",   name: "אסאדו מבושל",         protein100: 26,   cal100: 300 },
+  { id: "p-rice",    name: "אורז מבושל",          protein100: 2.7,  cal100: 130 },
+  { id: "p-lentil",  name: "מרק עדשים",           protein100: 5,    cal100: 70,  unitName: "קערה",   unitGrams: 300 },
+  { id: "p-tuna",    name: "טונה בשימורים (מסוננת)", protein100: 26, cal100: 116, unitName: "קופסה", unitGrams: 105 },
+  { id: "p-powder",  name: "אבקת חלבון וניל",     protein100: 75,   cal100: 380, unitName: "סקופ",   unitGrams: 30 },
+  { id: "p-almonds", name: "שקדים ואגוזים",       protein100: 20,   cal100: 590 },
+  { id: "p-bread",   name: "לחם מלא",             protein100: 13,   cal100: 250, unitName: "פרוסה",  unitGrams: 35 },
+  { id: "p-veg",     name: "ירקות / סלט",         protein100: 1.5,  cal100: 25 },
+];
+const DEFAULT_MEALS = [
+  { id: "m-bowl", name: "קערת חלבון", items: [
+    { productId: "p-yogurt", grams: 200 }, { productId: "p-powder", grams: 30 }, { productId: "p-almonds", grams: 20 },
+  ]},
+  { id: "m-tuna", name: "סלט טונה עם ביצה", items: [
+    { productId: "p-tuna", grams: 105 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 150 },
+  ]},
+  { id: "m-chicken", name: "חזה עוף + אורז + ירקות", items: [
+    { productId: "p-chicken", grams: 150 }, { productId: "p-rice", grams: 200 }, { productId: "p-veg", grams: 150 },
+  ]},
+];
+
 /* ============================ state ============================ */
 
 let state = load();
+if (!state.products) {
+  state.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
+  state.meals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
+  save();
+}
+
+const productById = (id) => state.products.find((p) => p.id === id);
+const mealById = (id) => state.meals.find((m) => m.id === id);
+const round1 = (n) => Math.round(n * 10) / 10;
+function mealProtein(meal) {
+  return round1(meal.items.reduce((a, it) => {
+    const p = productById(it.productId);
+    return a + (p ? (it.grams * p.protein100) / 100 : 0);
+  }, 0));
+}
+function mealCal(meal) {
+  return Math.round(meal.items.reduce((a, it) => {
+    const p = productById(it.productId);
+    return a + (p ? (it.grams * p.cal100) / 100 : 0);
+  }, 0));
+}
+function newId(prefix) { return prefix + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 
 function load() {
   try {
@@ -189,6 +238,7 @@ $$(".navbtn").forEach((btn) => {
     $("#screen-" + target).classList.remove("hidden");
     if (target === "menu") renderMenu();
     if (target === "workout") renderWorkout();
+    if (target === "food") renderFood();
     if (target === "progress") renderProgress();
   });
 });
@@ -242,6 +292,8 @@ function renderMenu() {
     head.appendChild(editBtn);
     card.appendChild(head);
 
+    let updateProtein = () => {}; // מוגדר בהמשך, אחרי בניית שורת החלבון
+
     for (const meal of MEALS) {
       const row = document.createElement("div");
       row.className = "meal-row" + (day.eaten[meal.key] ? " eaten" : "");
@@ -252,9 +304,12 @@ function renderMenu() {
         day.eaten[meal.key] = cb.checked;
         row.classList.toggle("eaten", cb.checked);
         save();
+        updateProtein();
       });
+      const slotP = (day.slotProtein || {})[meal.key];
+      const badge = slotP != null ? `<span class="meal-badge">${slotP} ג׳</span>` : "";
       const txt = document.createElement("div");
-      txt.innerHTML = `<span class="meal-label">${meal.label}</span><span class="meal-text">${escapeHtml(day[meal.key])}</span>`;
+      txt.innerHTML = `<span class="meal-label">${meal.label}${badge}</span><span class="meal-text">${escapeHtml(day[meal.key])}</span>`;
       row.appendChild(cb);
       row.appendChild(txt);
       card.appendChild(row);
@@ -282,15 +337,24 @@ function renderMenu() {
     fill.className = "protein-fill";
     bar.appendChild(fill);
 
-    const update = () => {
-      num.innerHTML = `חלבון: <b>${day.protein}</b> ג׳`;
-      const pct = Math.min(100, (day.protein / PROTEIN_MAX) * 100);
-      fill.style.width = pct + "%";
-      fill.classList.toggle("ok", day.protein >= PROTEIN_MIN);
+    updateProtein = () => {
+      const slots = day.slotProtein || {};
+      const hasSlots = MEALS.some((m) => slots[m.key] != null);
+      if (hasSlots) {
+        // כשמצורפות ארוחות מחושבות — הפס מתקדם לפי מה שבאמת נאכל
+        const eaten = round1(MEALS.reduce((a, m) => a + (day.eaten[m.key] && slots[m.key] != null ? slots[m.key] : 0), 0));
+        num.innerHTML = `נאכל: <b>${eaten}</b> / ${day.protein} ג׳`;
+        fill.style.width = Math.min(100, (eaten / PROTEIN_MAX) * 100) + "%";
+        fill.classList.toggle("ok", eaten >= PROTEIN_MIN);
+      } else {
+        num.innerHTML = `חלבון: <b>${day.protein}</b> ג׳`;
+        fill.style.width = Math.min(100, (day.protein / PROTEIN_MAX) * 100) + "%";
+        fill.classList.toggle("ok", day.protein >= PROTEIN_MIN);
+      }
     };
-    minus.addEventListener("click", () => { day.protein = Math.max(0, day.protein - 5); save(); update(); });
-    plus.addEventListener("click", () => { day.protein += 5; save(); update(); });
-    update();
+    minus.addEventListener("click", () => { day.protein = Math.max(0, day.protein - 5); save(); updateProtein(); });
+    plus.addEventListener("click", () => { day.protein += 5; save(); updateProtein(); });
+    updateProtein();
 
     prow.append(minus, num, plus, bar);
     card.appendChild(prow);
@@ -311,6 +375,30 @@ function escapeHtml(s) {
 
 /* ---------- מודאל עריכת יום ---------- */
 let editingDayIndex = null;
+let editSlots = {}; // מצב זמני של ארוחות מצורפות בזמן עריכה
+
+function fillMealPicker(sel, selectedId) {
+  sel.innerHTML = "";
+  const none = document.createElement("option");
+  none.value = ""; none.textContent = "— צרף ארוחה מהספרייה —";
+  sel.appendChild(none);
+  for (const m of state.meals) {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = `${m.name} · ${mealProtein(m)} ג׳`;
+    if (m.id === selectedId) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function refreshEditProteinTotal() {
+  const vals = MEALS.map((m) => editSlots[m.key].protein).filter((v) => v != null);
+  if (vals.length) $("#edit-protein").value = Math.round(vals.reduce((a, b) => a + b, 0));
+  for (const m of MEALS) {
+    $("#slot-protein-" + m.key).textContent = editSlots[m.key].protein != null ? `${editSlots[m.key].protein} ג׳` : "";
+  }
+}
+
 function openDayEditor(i) {
   editingDayIndex = i;
   const day = state.weeks[currentWeekKey].days[i];
@@ -321,7 +409,31 @@ function openDayEditor(i) {
   $("#edit-notes").value = day.notes;
   $("#edit-protein").value = day.protein;
   $("#edit-fast").checked = day.fast;
+  const mealIds = day.mealIds || {};
+  const slotP = day.slotProtein || {};
+  editSlots = {};
+  for (const m of MEALS) {
+    editSlots[m.key] = { mealId: mealIds[m.key] || "", protein: slotP[m.key] != null ? slotP[m.key] : null };
+    fillMealPicker($("#meal-pick-" + m.key), editSlots[m.key].mealId);
+  }
+  refreshEditProteinTotal();
   $("#modal").classList.remove("hidden");
+}
+
+const SLOT_FIELDS = { morning: "#edit-morning", noon: "#edit-noon", evening: "#edit-evening" };
+for (const m of MEALS) {
+  $("#meal-pick-" + m.key).addEventListener("change", (e) => {
+    const id = e.target.value;
+    if (id) {
+      const meal = mealById(id);
+      editSlots[m.key] = { mealId: id, protein: mealProtein(meal) };
+      const names = meal.items.map((it) => (productById(it.productId) || { name: "?" }).name).join(", ");
+      $(SLOT_FIELDS[m.key]).value = `${meal.name} (${names})`;
+    } else {
+      editSlots[m.key] = { mealId: "", protein: null };
+    }
+    refreshEditProteinTotal();
+  });
 }
 $("#modal-cancel").addEventListener("click", () => $("#modal").classList.add("hidden"));
 $("#modal").addEventListener("click", (e) => { if (e.target === $("#modal")) $("#modal").classList.add("hidden"); });
@@ -333,6 +445,11 @@ $("#modal-save").addEventListener("click", () => {
   day.notes = $("#edit-notes").value;
   day.protein = Math.max(0, parseInt($("#edit-protein").value, 10) || 0);
   day.fast = $("#edit-fast").checked;
+  day.mealIds = {}; day.slotProtein = {};
+  for (const m of MEALS) {
+    day.mealIds[m.key] = editSlots[m.key].mealId || null;
+    day.slotProtein[m.key] = editSlots[m.key].protein;
+  }
   save();
   $("#modal").classList.add("hidden");
   renderMenu();
@@ -679,6 +796,223 @@ $$(".rest-btn").forEach((btn) => {
       if (sec <= 3) beep(660, 0.1);
       draw();
     }, 1000);
+  });
+});
+
+/* ============================ מסך מזון ============================ */
+
+function renderFood() {
+  const plist = $("#product-list");
+  plist.innerHTML = "";
+  for (const p of state.products) {
+    const row = document.createElement("div");
+    row.className = "food-item";
+    const unit = p.unitName && p.unitGrams ? ` · ${p.unitName} = ${p.unitGrams} ג׳` : "";
+    row.innerHTML = `<div><div class="food-item-name">${escapeHtml(p.name)}</div>
+      <div class="food-item-info">${p.cal100} קק״ל ל־100 ג׳${unit}</div></div>
+      <div class="food-item-protein">${p.protein100} ג׳/100</div>`;
+    row.addEventListener("click", () => openProductEditor(p.id));
+    plist.appendChild(row);
+  }
+
+  const mlist = $("#meal-list");
+  mlist.innerHTML = "";
+  for (const m of state.meals) {
+    const row = document.createElement("div");
+    row.className = "food-item";
+    const names = m.items.map((it) => (productById(it.productId) || { name: "?" }).name).join(", ");
+    row.innerHTML = `<div><div class="food-item-name">${escapeHtml(m.name)}</div>
+      <div class="food-item-info">${escapeHtml(names)} · ${mealCal(m)} קק״ל</div></div>
+      <div class="food-item-protein">${mealProtein(m)} ג׳</div>`;
+    row.addEventListener("click", () => openMealEditor(m.id));
+    mlist.appendChild(row);
+  }
+}
+
+/* ---------- מודאל בדיקה ---------- */
+let reviewConfirmAction = null;
+function showReview(notes, onConfirm) {
+  const box = $("#review-notes");
+  box.innerHTML = "";
+  const icons = { error: "⛔", warn: "⚠️", ok: "✅", info: "🔢" };
+  for (const n of notes) {
+    const div = document.createElement("div");
+    div.className = "review-note " + n.level;
+    div.innerHTML = `<span>${icons[n.level]}</span><span>${escapeHtml(n.text)}</span>`;
+    box.appendChild(div);
+  }
+  const hasError = notes.some((n) => n.level === "error");
+  $("#review-confirm").disabled = hasError;
+  $("#review-confirm").textContent = hasError ? "יש שגיאה — תקן קודם" : "אשר ושמור";
+  reviewConfirmAction = onConfirm;
+  $("#review-modal").classList.remove("hidden");
+}
+$("#review-back").addEventListener("click", () => { $("#review-modal").classList.add("hidden"); });
+$("#review-confirm").addEventListener("click", () => {
+  $("#review-modal").classList.add("hidden");
+  if (reviewConfirmAction) reviewConfirmAction();
+});
+
+/* ---------- בדיקות סבירות (מבוססות על כללי תזונה בסיסיים) ---------- */
+function reviewProduct(p) {
+  const notes = [];
+  if (!p.name.trim()) notes.push({ level: "error", text: "חסר שם למוצר." });
+  if (p.protein100 > 100) notes.push({ level: "error", text: `${p.protein100} ג׳ חלבון ב־100 ג׳ מוצר — בלתי אפשרי (המקסימום הוא 100).` });
+  else if (p.protein100 > 45 && p.cal100 < 500)
+    notes.push({ level: "warn", text: `${p.protein100} ג׳ חלבון ל־100 ג׳ זה גבוה מאוד — הגיוני רק לאבקת חלבון או בשר מיובש. בדוק את התווית.` });
+  if (p.cal100 > 0 && p.cal100 < p.protein100 * 4)
+    notes.push({ level: "error", text: `${p.cal100} קק״ל נמוך מדי: חלבון לבדו נותן ${Math.round(p.protein100 * 4)} קק״ל (4 קק״ל לגרם). כנראה טעות באחד המספרים.` });
+  if (p.cal100 > 900) notes.push({ level: "warn", text: "מעל 900 קק״ל ל־100 ג׳ — רק שמן טהור מגיע לזה. בדוק את המספר." });
+  if (p.unitGrams > 1000) notes.push({ level: "warn", text: "משקל יחידה מעל קילו — בטוח?" });
+  if (p.unitName && !p.unitGrams) notes.push({ level: "warn", text: "הגדרת שם יחידה בלי משקל — לא יהיה אפשר לחשב לפי יחידות." });
+  if (p.protein100 === 0) notes.push({ level: "info", text: "מוצר בלי חלבון — לגיטימי (ירקות, שמן), רק מוודא שזו הכוונה." });
+  if (!notes.some((n) => n.level === "error" || n.level === "warn"))
+    notes.push({ level: "ok", text: "הערכים נראים סבירים." });
+  return notes;
+}
+
+function reviewMeal(m) {
+  const notes = [];
+  if (!m.name.trim()) notes.push({ level: "error", text: "חסר שם לארוחה." });
+  if (!m.items.length) notes.push({ level: "error", text: "הארוחה ריקה — הוסף לפחות מוצר אחד." });
+  let totalGrams = 0;
+  for (const it of m.items) {
+    const p = productById(it.productId);
+    if (!p) { notes.push({ level: "error", text: "אחד המוצרים בארוחה לא קיים יותר." }); continue; }
+    totalGrams += it.grams;
+    notes.push({ level: "info", text: `${p.name}: ${it.grams} ג׳ × ${p.protein100}/100 = ${round1((it.grams * p.protein100) / 100)} ג׳ חלבון` });
+    if (it.grams > 500) notes.push({ level: "warn", text: `${it.grams} ג׳ ${p.name} — כמות גדולה מאוד למנה אחת. בטוח?` });
+    if (it.grams <= 0) notes.push({ level: "error", text: `כמות לא תקינה עבור ${p.name}.` });
+  }
+  const prot = mealProtein(m), cal = mealCal(m);
+  notes.push({ level: "info", text: `סה״כ: ${prot} ג׳ חלבון, ${cal} קק״ל, ${totalGrams} ג׳ אוכל.` });
+  if (prot > 70) notes.push({ level: "warn", text: "מעל 70 ג׳ חלבון בארוחה אחת — הגוף מנצל, אבל זה חריג. ודא את הכמויות." });
+  if (prot < 10 && m.items.length) notes.push({ level: "warn", text: `רק ${prot} ג׳ חלבון — ארוחה דלת חלבון. בסדר אם זו הכוונה, אבל היא לא תקדם אותך ליעד היומי.` });
+  if (totalGrams > 1200) notes.push({ level: "warn", text: "מעל 1.2 ק״ג אוכל בארוחה — נשמע הרבה. בדוק את הכמויות." });
+  if (!notes.some((n) => n.level === "error" || n.level === "warn"))
+    notes.push({ level: "ok", text: "הארוחה נראית מאוזנת והחישוב תקין." });
+  return notes;
+}
+
+/* ---------- עורך מוצר ---------- */
+let editingProductId = null;
+function openProductEditor(id) {
+  editingProductId = id;
+  const p = id ? productById(id) : null;
+  $("#product-modal-title").textContent = p ? `עריכת ${p.name}` : "מוצר חדש";
+  $("#prod-name").value = p ? p.name : "";
+  $("#prod-protein").value = p ? p.protein100 : "";
+  $("#prod-cal").value = p ? p.cal100 : "";
+  $("#prod-unit-name").value = p && p.unitName ? p.unitName : "";
+  $("#prod-unit-grams").value = p && p.unitGrams ? p.unitGrams : "";
+  $("#product-delete").classList.toggle("hidden", !p);
+  $("#product-modal").classList.remove("hidden");
+}
+$("#product-add").addEventListener("click", () => openProductEditor(null));
+$("#product-cancel").addEventListener("click", () => $("#product-modal").classList.add("hidden"));
+$("#product-delete").addEventListener("click", () => {
+  const usedBy = state.meals.filter((m) => m.items.some((it) => it.productId === editingProductId));
+  if (usedBy.length) { alert(`אי אפשר למחוק — המוצר בשימוש בארוחות: ${usedBy.map((m) => m.name).join(", ")}`); return; }
+  if (!confirm("למחוק את המוצר?")) return;
+  state.products = state.products.filter((p) => p.id !== editingProductId);
+  save();
+  $("#product-modal").classList.add("hidden");
+  renderFood();
+});
+$("#product-save").addEventListener("click", () => {
+  const p = {
+    id: editingProductId || newId("p"),
+    name: $("#prod-name").value.trim(),
+    protein100: parseFloat($("#prod-protein").value) || 0,
+    cal100: parseFloat($("#prod-cal").value) || 0,
+    unitName: $("#prod-unit-name").value.trim() || undefined,
+    unitGrams: parseFloat($("#prod-unit-grams").value) || undefined,
+  };
+  showReview(reviewProduct(p), () => {
+    const idx = state.products.findIndex((x) => x.id === p.id);
+    if (idx >= 0) state.products[idx] = p; else state.products.push(p);
+    save();
+    $("#product-modal").classList.add("hidden");
+    renderFood();
+  });
+});
+
+/* ---------- עורך ארוחה ---------- */
+let editingMeal = null; // עותק עבודה זמני
+function openMealEditor(id) {
+  const m = id ? mealById(id) : null;
+  editingMeal = m
+    ? JSON.parse(JSON.stringify(m))
+    : { id: null, name: "", items: [] };
+  $("#meal-modal-title").textContent = m ? `עריכת ${m.name}` : "ארוחה חדשה";
+  $("#meal-name").value = editingMeal.name;
+  $("#meal-delete").classList.toggle("hidden", !m);
+  renderMealItems();
+  $("#meal-modal").classList.remove("hidden");
+}
+function renderMealItems() {
+  const wrap = $("#meal-items");
+  wrap.innerHTML = "";
+  editingMeal.items.forEach((it, i) => {
+    const row = document.createElement("div");
+    row.className = "meal-item-row";
+    const sel = document.createElement("select");
+    for (const p of state.products) {
+      const opt = document.createElement("option");
+      opt.value = p.id; opt.textContent = p.name;
+      if (p.id === it.productId) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener("change", () => { it.productId = sel.value; renderMealItems(); });
+    const amt = document.createElement("input");
+    amt.type = "number"; amt.min = 0; amt.step = 5; amt.inputMode = "numeric"; amt.value = it.grams;
+    amt.placeholder = "גרם";
+    amt.addEventListener("input", () => { it.grams = parseFloat(amt.value) || 0; updateMealTotals(); });
+    const del = document.createElement("button");
+    del.className = "del-set"; del.textContent = "✕";
+    del.addEventListener("click", () => { editingMeal.items.splice(i, 1); renderMealItems(); });
+    row.append(sel, amt, del);
+    wrap.appendChild(row);
+
+    const p = productById(it.productId);
+    if (p) {
+      const calc = document.createElement("div");
+      calc.className = "meal-item-calc";
+      const unitHint = p.unitName && p.unitGrams ? ` (${p.unitName} = ${p.unitGrams} ג׳)` : "";
+      calc.textContent = `= ${round1((it.grams * p.protein100) / 100)} ג׳ חלבון, ${Math.round((it.grams * p.cal100) / 100)} קק״ל${unitHint}`;
+      wrap.appendChild(calc);
+    }
+  });
+  updateMealTotals();
+}
+function updateMealTotals() {
+  $("#meal-totals").innerHTML = editingMeal.items.length
+    ? `סה״כ: <span>${mealProtein(editingMeal)} ג׳ חלבון</span> · ${mealCal(editingMeal)} קק״ל`
+    : "";
+}
+$("#meal-add").addEventListener("click", () => openMealEditor(null));
+$("#meal-cancel").addEventListener("click", () => $("#meal-modal").classList.add("hidden"));
+$("#meal-item-add").addEventListener("click", () => {
+  const first = state.products[0];
+  editingMeal.items.push({ productId: first ? first.id : "", grams: 100 });
+  renderMealItems();
+});
+$("#meal-delete").addEventListener("click", () => {
+  if (!confirm("למחוק את הארוחה?")) return;
+  state.meals = state.meals.filter((m) => m.id !== editingMeal.id);
+  save();
+  $("#meal-modal").classList.add("hidden");
+  renderFood();
+});
+$("#meal-save").addEventListener("click", () => {
+  editingMeal.name = $("#meal-name").value.trim();
+  showReview(reviewMeal(editingMeal), () => {
+    if (!editingMeal.id) editingMeal.id = newId("m");
+    const idx = state.meals.findIndex((x) => x.id === editingMeal.id);
+    if (idx >= 0) state.meals[idx] = editingMeal; else state.meals.push(editingMeal);
+    save();
+    $("#meal-modal").classList.add("hidden");
+    renderFood();
   });
 });
 

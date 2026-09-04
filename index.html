@@ -129,6 +129,33 @@
     <button id="btn-finish-workout" class="btn primary big">✅ סיים אימון</button>
   </section>
 
+  <!-- ===== מסך מזון ===== -->
+  <section id="screen-food" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>מוצרים וארוחות</h1>
+        <div class="subtitle">בונים ארוחה ממוצרים — החלבון מחושב לבד</div>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>🥚 המוצרים שלי</h2>
+        <button id="product-add" class="btn small">+ מוצר</button>
+      </div>
+      <div id="product-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>🍲 הארוחות שלי</h2>
+        <button id="meal-add" class="btn small">+ ארוחה</button>
+      </div>
+      <p class="hint">ארוחה שנשמרת כאן אפשר לצרף לתפריט השבועי דרך עריכת יום (✏️).</p>
+      <div id="meal-list"></div>
+    </div>
+  </section>
+
   <!-- ===== מסך התקדמות ===== -->
   <section id="screen-progress" class="screen hidden">
     <header class="topbar">
@@ -166,6 +193,7 @@
 <nav class="bottomnav">
   <button data-screen="menu" class="navbtn active"><span>🍽️</span>תפריט</button>
   <button data-screen="workout" class="navbtn"><span>🏋️</span>אימונים</button>
+  <button data-screen="food" class="navbtn"><span>🥗</span>מזון</button>
   <button data-screen="progress" class="navbtn"><span>📈</span>התקדמות</button>
 </nav>
 
@@ -173,15 +201,82 @@
 <div id="modal" class="modal hidden">
   <div class="modal-box">
     <h2 id="modal-title">עריכת יום</h2>
-    <label>בוקר<textarea id="edit-morning" rows="2"></textarea></label>
-    <label>צהריים<textarea id="edit-noon" rows="2"></textarea></label>
-    <label>ערב<textarea id="edit-evening" rows="2"></textarea></label>
+    <div class="slot-edit" data-slot="morning">
+      <label>בוקר<textarea id="edit-morning" rows="2"></textarea></label>
+      <div class="row gap slot-meal-row">
+        <select id="meal-pick-morning" class="grow"></select>
+        <span id="slot-protein-morning" class="slot-protein"></span>
+      </div>
+    </div>
+    <div class="slot-edit" data-slot="noon">
+      <label>צהריים<textarea id="edit-noon" rows="2"></textarea></label>
+      <div class="row gap slot-meal-row">
+        <select id="meal-pick-noon" class="grow"></select>
+        <span id="slot-protein-noon" class="slot-protein"></span>
+      </div>
+    </div>
+    <div class="slot-edit" data-slot="evening">
+      <label>ערב<textarea id="edit-evening" rows="2"></textarea></label>
+      <div class="row gap slot-meal-row">
+        <select id="meal-pick-evening" class="grow"></select>
+        <span id="slot-protein-evening" class="slot-protein"></span>
+      </div>
+    </div>
     <label>הערות<textarea id="edit-notes" rows="2"></textarea></label>
-    <label>הערכת חלבון (ג׳)<input id="edit-protein" type="number" min="0" max="300" inputmode="numeric"></label>
+    <label>הערכת חלבון יומית (ג׳) — מתעדכן אוטומטית כשמצרפים ארוחות<input id="edit-protein" type="number" min="0" max="300" inputmode="numeric"></label>
     <label class="row check"><input id="edit-fast" type="checkbox"> יום צום 16:8</label>
     <div class="row gap">
       <button id="modal-save" class="btn primary grow">שמור</button>
       <button id="modal-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל מוצר -->
+<div id="product-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="product-modal-title">מוצר חדש</h2>
+    <label>שם המוצר<input id="prod-name" type="text"></label>
+    <div class="row gap">
+      <label class="grow">חלבון ל־100 ג׳<input id="prod-protein" type="number" min="0" step="0.1" inputmode="decimal"></label>
+      <label class="grow">קלוריות ל־100 ג׳<input id="prod-cal" type="number" min="0" inputmode="numeric"></label>
+    </div>
+    <div class="row gap">
+      <label class="grow">שם יחידה (לא חובה)<input id="prod-unit-name" type="text" placeholder="ביצה / פרוסה / סקופ"></label>
+      <label class="grow">משקל יחידה (ג׳)<input id="prod-unit-grams" type="number" min="0" inputmode="numeric"></label>
+    </div>
+    <div class="row gap">
+      <button id="product-save" class="btn primary grow">בדוק ושמור</button>
+      <button id="product-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="product-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל ארוחה -->
+<div id="meal-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="meal-modal-title">ארוחה חדשה</h2>
+    <label>שם הארוחה<input id="meal-name" type="text" placeholder="קערת חלבון"></label>
+    <div id="meal-items"></div>
+    <button id="meal-item-add" class="btn small">+ הוסף מוצר</button>
+    <div id="meal-totals" class="meal-totals"></div>
+    <div class="row gap">
+      <button id="meal-save" class="btn primary grow">בדוק ושמור</button>
+      <button id="meal-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="meal-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל בדיקה (סקירה לפני שמירה) -->
+<div id="review-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>🤖 בדיקה לפני שמירה</h2>
+    <div id="review-notes"></div>
+    <div class="row gap">
+      <button id="review-confirm" class="btn primary grow">אשר ושמור</button>
+      <button id="review-back" class="btn ghost">חזור לעריכה</button>
     </div>
   </div>
 </div>

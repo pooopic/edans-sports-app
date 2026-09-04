@@ -282,6 +282,51 @@ canvas { width: 100%; display: block; }
 .navbtn span { font-size: 1.3rem; }
 .navbtn.active { color: var(--accent); }
 
+/* ---- food ---- */
+.food-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--line);
+}
+.food-item:first-child { border-top: none; }
+.food-item-name { font-size: 0.92rem; font-weight: 600; }
+.food-item-info { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+.food-item-protein { color: var(--accent); font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+
+.meal-item-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.meal-item-row select { flex: 2; }
+.meal-item-row input { flex: 1; min-width: 64px; }
+.meal-item-calc { color: var(--muted); font-size: 0.72rem; margin: -2px 0 8px; text-align: center; }
+.meal-totals {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 10px 0;
+}
+.meal-totals span { color: var(--accent); }
+
+.slot-meal-row { margin: -4px 0 10px; }
+.slot-meal-row select { font-size: 0.85rem; padding: 6px; }
+.slot-protein { color: var(--accent); font-size: 0.85rem; font-weight: 700; white-space: nowrap; min-width: 52px; text-align: center; }
+.meal-badge {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-inline-start: 6px;
+}
+
+.review-note { display: flex; gap: 8px; align-items: flex-start; padding: 7px 0; border-top: 1px solid var(--line); font-size: 0.88rem; line-height: 1.5; }
+.review-note:first-child { border-top: none; }
+.review-note.error { color: var(--danger); }
+.review-note.warn { color: var(--warn); }
+.review-note.ok { color: var(--accent); }
+.review-note.info { color: var(--muted); }
+.btn.danger { color: var(--danger); border-color: var(--danger); }
+
 /* ---- modal ---- */
 .modal {
   position: fixed; inset: 0;
