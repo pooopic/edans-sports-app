@@ -26,7 +26,7 @@ const MENU_TEMPLATE = [
   { // שני
     morning: "2 ביצים קשות + קוטג׳ + ירקות",
     noon: "מנת אסאדו מהמקפיא + אורז",
-    evening: "מרק עדשים + יוגורט יווני",
+    evening: "סלט עדשים קר + יוגורט יווני",
     notes: "",
     protein: 135, fast: false,
     meals: { morning: "m-eggs-cottage", noon: "m-asado-rice", evening: "m-lentil-yogurt" },
@@ -49,7 +49,7 @@ const MENU_TEMPLATE = [
   },
   { // חמישי
     morning: "קערת חלבון: יוגורט יווני + אבקת וניל + תערובת שקדים, אגוזים ופירות יבשים",
-    noon: "מרק עדשים + חזה עוף / מה שנשאר",
+    noon: "סלט עדשים עם חזה עוף / מה שנשאר",
     evening: "שקשוקה + סלט",
     notes: "אימון משקולות. לתכנן בישולים לשבוע הבא",
     protein: 140, fast: false,
@@ -59,7 +59,7 @@ const MENU_TEMPLATE = [
     morning: "— (דילוג — יוצא צום 16:8 בפועל)",
     noon: "משהו קטן: יוגורט יווני / ביצה קשה וירקות",
     evening: "אסאדו בריבת בצל + אורז + סלט גדול",
-    notes: "יום בישולים: אסאדו בתנור (3 שעות), אורז, ביצים קשות, מרק עדשים להקפאה",
+    notes: "יום בישולים: אסאדו בתנור (3 שעות), אורז, ביצים קשות, עדשים מבושלות לסלט (מחזיק 4-5 ימים במקרר)",
     protein: 105, fast: false,
     meals: { morning: null, noon: "m-snack", evening: "m-asado-rice" },
   },
@@ -67,7 +67,7 @@ const MENU_TEMPLATE = [
     morning: "חביתה 2-3 ביצים + קוטג׳ + ירקות",
     noon: "אסאדו + אורז + ירקות אנטיפסטי",
     evening: "סלט טונה עם ביצה קשה וירקות",
-    notes: "להקפיא 2-3 מנות אסאדו + מנות מרק עדשים",
+    notes: "להקפיא 2-3 מנות אסאדו",
     protein: 140, fast: false,
     meals: { morning: "m-omelette-cottage", noon: "m-asado-rice", evening: "m-tuna" },
   },
@@ -90,7 +90,7 @@ const DEFAULT_PRODUCTS = [
   { id: "p-chicken", name: "חזה עוף מבושל",       protein100: 31,   cal100: 165 },
   { id: "p-asado",   name: "אסאדו מבושל",         protein100: 26,   cal100: 300 },
   { id: "p-rice",    name: "אורז מבושל",          protein100: 2.7,  cal100: 130 },
-  { id: "p-lentil",  name: "מרק עדשים",           protein100: 5,    cal100: 70,  unitName: "קערה",   unitGrams: 300 },
+  { id: "p-lentil",  name: "עדשים מבושלות",       protein100: 9,    cal100: 116, unitName: "כוס",    unitGrams: 200 },
   { id: "p-tuna",    name: "טונה בשימורים (מסוננת)", protein100: 26, cal100: 116, unitName: "קופסה", unitGrams: 105 },
   { id: "p-powder",  name: "אבקת חלבון וניל",     protein100: 75,   cal100: 380, unitName: "סקופ",   unitGrams: 30 },
   { id: "p-almonds", name: "שקדים ואגוזים",       protein100: 20,   cal100: 590 },
@@ -126,11 +126,11 @@ const DEFAULT_MEALS = [
   { id: "m-asado-rice", name: "אסאדו + אורז + סלט", items: [
     { productId: "p-asado", grams: 180 }, { productId: "p-rice", grams: 200 }, { productId: "p-veg", grams: 100 },
   ]},
-  { id: "m-lentil-yogurt", name: "מרק עדשים + יוגורט יווני", items: [
-    { productId: "p-lentil", grams: 300 }, { productId: "p-yogurt", grams: 150 },
+  { id: "m-lentil-yogurt", name: "סלט עדשים קר + יוגורט יווני", items: [
+    { productId: "p-lentil", grams: 200 }, { productId: "p-veg", grams: 150 }, { productId: "p-yogurt", grams: 150 },
   ]},
-  { id: "m-lentil-chicken", name: "מרק עדשים + חזה עוף", items: [
-    { productId: "p-lentil", grams: 300 }, { productId: "p-chicken", grams: 100 },
+  { id: "m-lentil-chicken", name: "סלט עדשים עם חזה עוף", items: [
+    { productId: "p-lentil", grams: 200 }, { productId: "p-chicken", grams: 100 }, { productId: "p-veg", grams: 150 },
   ]},
   { id: "m-snack", name: "יוגורט + ביצה קשה וירקות", items: [
     { productId: "p-yogurt", grams: 150 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 100 },
@@ -158,7 +158,7 @@ const DEFAULT_SHOPPING = [
   { cat: "ירקות", name: "לימון", qty: "3 יח׳", notes: "" },
   { cat: "ירקות", name: "פטרוזיליה / כוסברה", qty: "צרור", notes: "" },
   { cat: "ירקות", name: "פרי (לבחירה)", qty: "5-6 יח׳", notes: "לארוחת בוקר חמישי ונשנוש" },
-  { cat: "יבשים ושימורים", name: "עדשים (ירוקות/כתומות)", qty: "500 ג׳", notes: "למרק להקפאה", productId: "p-lentil" },
+  { cat: "יבשים ושימורים", name: "עדשים (ירוקות/כתומות)", qty: "500 ג׳", notes: "לסלט עדשים קר — לבשל ביום הבישולים, מחזיק 4-5 ימים במקרר", productId: "p-lentil" },
   { cat: "יבשים ושימורים", name: "טונה בשימורים", qty: "4 קופסאות", notes: "במים — פחות קלוריות", productId: "p-tuna" },
   { cat: "יבשים ושימורים", name: "לחם מלא", qty: "1 יח׳", notes: "אפשר לפרוס ולהקפיא", productId: "p-bread" },
   { cat: "יבשים ושימורים", name: "אורז", qty: "1 ק\"ג", notes: "בסיס לצהריים", productId: "p-rice" },
@@ -217,6 +217,48 @@ if ((state.seedV || 1) < 2) {
     });
   }
   state.seedV = 2;
+  save();
+}
+
+/* שדרוג 3: מרק עדשים ← סלט עדשים קר (גרסת קיץ) */
+if (state.seedV < 3) {
+  const lentil = productById("p-lentil");
+  if (lentil && lentil.name === "מרק עדשים") {
+    Object.assign(lentil, { name: "עדשים מבושלות", protein100: 9, cal100: 116, unitName: "כוס", unitGrams: 200 });
+  }
+  const OLD_TEXTS = {
+    "מרק עדשים + יוגורט יווני": "סלט עדשים קר + יוגורט יווני",
+    "מרק עדשים + חזה עוף / מה שנשאר": "סלט עדשים עם חזה עוף / מה שנשאר",
+  };
+  for (const id of ["m-lentil-yogurt", "m-lentil-chicken"]) {
+    const idx = state.meals.findIndex((m) => m.id === id);
+    const fresh = DEFAULT_MEALS.find((m) => m.id === id);
+    if (idx >= 0 && OLD_TEXTS[state.meals[idx].name] && fresh) {
+      state.meals[idx] = JSON.parse(JSON.stringify(fresh));
+    }
+  }
+  for (const wk of Object.values(state.weeks || {})) {
+    for (const day of wk.days) {
+      for (const slot of SLOT_KEYS) {
+        if (OLD_TEXTS[day[slot]]) day[slot] = OLD_TEXTS[day[slot]];
+        const mealId = day.mealIds && day.mealIds[slot];
+        if (mealId === "m-lentil-yogurt" || mealId === "m-lentil-chicken") {
+          const meal = mealById(mealId);
+          if (meal) day.slotProtein[slot] = mealProtein(meal);
+        }
+      }
+      const vals = SLOT_KEYS.map((s) => day.slotProtein && day.slotProtein[s]).filter((v) => v != null);
+      if (vals.length) day.protein = Math.round(vals.reduce((a, b) => a + b, 0));
+    }
+  }
+  for (const list of Object.values(state.shopping || {})) {
+    for (const item of list.items) {
+      if (item.productId === "p-lentil" && item.notes && item.notes.includes("מרק")) {
+        item.notes = "לסלט עדשים קר — לבשל ביום הבישולים, מחזיק 4-5 ימים במקרר";
+      }
+    }
+  }
+  state.seedV = 3;
   save();
 }
 
