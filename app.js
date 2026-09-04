@@ -359,21 +359,22 @@ function renderWorkout() {
 }
 
 function renderWorkoutChips() {
+  // מהיום ושבוע קדימה — לא מציגים ימים שכבר עברו
   const wrap = $("#workout-day-chips");
   wrap.innerHTML = "";
-  const wk = weekKeyOf(new Date());
-  for (const wd of WORKOUT_DAYS) {
-    const dateIso = addDays(wk, wd);
+  for (let i = 0; i < 7; i++) {
+    const dateIso = addDays(todayIso(), i);
+    const wd = fromIso(dateIso).getDay();
     const chip = document.createElement("button");
     chip.className = "chip"
       + (dateIso === currentWorkoutDate ? " active" : "")
-      + (dateIso === todayIso() ? " today" : "")
+      + (i === 0 ? " today" : "")
       + (state.workouts[dateIso] && state.workouts[dateIso].done ? " done" : "");
-    chip.textContent = `${DAY_SHORT[wd]} ${shortDate(dateIso)}`;
+    chip.textContent = i === 0 ? `היום · ${DAY_SHORT[wd]}` : `${DAY_SHORT[wd]} ${shortDate(dateIso)}`;
     chip.addEventListener("click", () => { currentWorkoutDate = dateIso; renderWorkout(); });
     wrap.appendChild(chip);
   }
-  // תאריך חופשי
+  // תאריך חופשי — למשל כדי להשלים רישום של אימון מאתמול
   const dateChip = document.createElement("input");
   dateChip.type = "date";
   dateChip.className = "chip";
