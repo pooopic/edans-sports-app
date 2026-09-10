@@ -295,6 +295,17 @@ if (state.seedV < 4) {
   save();
 }
 
+/* שדרוג 5: הערות חג לשבוע 6-12.9 (ראש השנה — שישי-שבת מחוץ לבית) */
+if (state.seedV < 5) {
+  const holidayWeek = state.weeks && state.weeks["2026-09-06"];
+  if (holidayWeek) {
+    holidayWeek.days[5].notes = "חג 🍎🍯 — ארוחת חג בחוץ (מביאים עלי גפן ממולאים + כרוב ממולא)";
+    holidayWeek.days[6].notes = "חג — חוזרים הביתה אחה\"צ";
+  }
+  state.seedV = 5;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -983,12 +994,42 @@ $$(".rest-btn").forEach((btn) => {
 function ensureShopping(weekKey) {
   if (!state.shopping) state.shopping = {};
   if (!state.shopping[weekKey]) {
-    state.shopping[weekKey] = {
-      items: DEFAULT_SHOPPING.map((it) => ({ ...it, id: newId("s"), checked: false })),
-    };
+    const items = DEFAULT_SHOPPING.map((it) => ({ ...it, id: newId("s"), checked: false }));
+    // אוטומציה: פריט מיוחד (לא מהתבנית) שלא נקנה בשבוע הקודם מתגלגל לשבוע החדש
+    const prevList = state.shopping[addDays(weekKey, -7)];
+    if (prevList) {
+      const defaultNames = new Set(DEFAULT_SHOPPING.map((i) => i.name));
+      for (const it of prevList.items) {
+        if (!it.checked && !defaultNames.has(it.name)) {
+          items.push({
+            ...it, id: newId("s"), checked: false,
+            notes: (it.notes ? it.notes + " · " : "") + "עבר משבוע שעבר (לא נקנה)",
+          });
+        }
+      }
+    }
+    state.shopping[weekKey] = { items };
     save();
   }
   return state.shopping[weekKey];
+}
+
+function shareShoppingList() {
+  const list = ensureShopping(currentWeekKey);
+  const remaining = list.items.filter((i) => !i.checked);
+  if (!remaining.length) { alert("הכל נקנה! 🎉"); return; }
+  let text = `🛒 רשימת קניות ${shortDate(currentWeekKey)}–${shortDate(addDays(currentWeekKey, 6))}\n`;
+  for (const cat of [...new Set(remaining.map((i) => i.cat))]) {
+    text += `\n*${cat}*\n`;
+    for (const it of remaining.filter((i) => i.cat === cat)) {
+      text += `▫️ ${it.name}${it.qty ? " — " + it.qty : ""}\n`;
+    }
+  }
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => alert("הרשימה הועתקה — הדבק בוואטסאפ 📋"));
+  }
 }
 
 /* כמה גרם מכל מוצר צריך השבוע, לפי הארוחות המקושרות בתפריט */
@@ -1064,6 +1105,7 @@ function renderShopping() {
   }
 }
 
+$("#shop-share").addEventListener("click", shareShoppingList);
 $("#shop-week-prev").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, -7); renderShopping(); });
 $("#shop-week-next").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, 7); renderShopping(); });
 $("#shop-reset").addEventListener("click", () => {
