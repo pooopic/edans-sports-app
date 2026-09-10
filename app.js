@@ -262,6 +262,39 @@ if (state.seedV < 3) {
   save();
 }
 
+/* שדרוג 4: הוספת קניות לשני מתכונים — עלי גפן ממולאים + כרוב ממולא (חד-פעמי, לשבוע הנוכחי) */
+if (state.seedV < 4) {
+  const wk = weekKeyOf(new Date());
+  const list = ensureShopping(wk);
+  const addIfMissing = (item) => {
+    if (!list.items.some((i) => i.name === item.name)) {
+      list.items.push({ ...item, id: newId("s"), checked: false });
+    }
+  };
+  // מיזוג עם פריטים קיימים שחופפים בין התפריט למתכונים
+  for (const it of list.items) {
+    if (it.name === "לימון" || it.name === "לימונים") { it.qty = "10 יח׳"; it.notes = "3 לתפריט + 7 למתכונים (2 למילוי, 5 לרוטב)"; }
+    if (it.name === "עגבניות") { it.qty = "2 ק\"ג"; it.notes = "סלטים + שקשוקה + ~5 למתכונים (3 למילוי, 2 לתחתית הסיר)"; }
+    if (it.name === "שום") { it.notes = "ראש אחד מספיק — כולל 5 שיניים למתכונים"; }
+    if (it.name.startsWith("פטרוזיליה")) { it.notes = "כולל חופן קצוץ למתכונים"; }
+  }
+  addIfMissing({ cat: "ירקות", name: "כרוב לבן גדול", qty: "1", notes: "למתכון הכרוב הממולא — לריכוך עלים" });
+  addIfMissing({ cat: "ירקות", name: "בצל רגיל", qty: "5 יח׳", notes: "למתכונים: 1.5 למילוי עלי הגפן, 2 לתחתית הסיר, 1 לכרוב" });
+  addIfMissing({ cat: "ירקות", name: "בצל ירוק", qty: "חבילה", notes: "למתכונים — חצי לשלב הראשון של המילוי, חצי בהמשך" });
+  addIfMissing({ cat: "ירקות", name: "סלרי", qty: "צרור", notes: "למתכונים — 5 גבעולים" });
+  addIfMissing({ cat: "בשר", name: "בשר בקר טחון", qty: "500 ג׳", notes: "למילוי עלי הגפן והכרוב" });
+  addIfMissing({ cat: "יבשים ושימורים", name: "אורז עגול", qty: "שקית 1.5 ק\"ג", notes: "למתכונים צריך ~1.2 ק\"ג (1 ק\"ג לעלי גפן + כוס לכרוב) — לא להתבלבל עם האורז הרגיל" });
+  addIfMissing({ cat: "יבשים ושימורים", name: "עלי גפן משומרים", qty: "2 צנצנות", notes: "או ק\"ג עלים טריים אם יש בעונה" });
+  addIfMissing({ cat: "יבשים ושימורים", name: "רסק עגבניות", qty: "פחית קטנה", notes: "למתכונים — צריך 3-4 כפות" });
+  addIfMissing({ cat: "יבשים ושימורים", name: "שמן זית", qty: "בקבוק", notes: "למתכונים צריך ~300 מ\"ל — לבדוק כמה יש בבית" });
+  addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "מלח + פלפל שחור גרוס", qty: "לבדוק שיש", notes: "" });
+  addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "פפריקה מתוקה", qty: "לבדוק שיש", notes: "צריך ~4 כפות" });
+  addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "כמון", qty: "לבדוק שיש", notes: "צריך כף" });
+  addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "בהרט", qty: "לבדוק שיש", notes: "צריך כפית" });
+  state.seedV = 4;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
