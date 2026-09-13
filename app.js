@@ -227,6 +227,7 @@ if (!state.products) {
 }
 
 const SLOT_KEYS = ["morning", "noon", "evening", "snack"];
+const SLOT_LABELS = { morning: "בוקר", noon: "צהריים", evening: "ערב", snack: "ביניים" };
 const productById = (id) => state.products.find((p) => p.id === id);
 const mealById = (id) => state.meals.find((m) => m.id === id);
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -394,6 +395,33 @@ if (state.seedV < 8) {
   save();
 }
 
+/* שדרוג 9: מעבר למבנה יום מודולרי — רשימת ארוחות במקום 4 סלוטים קבועים */
+if (state.seedV < 9) {
+  for (const wk of Object.values(state.weeks || {})) {
+    for (const day of wk.days) {
+      if (day.items) continue;
+      day.items = [];
+      for (const slot of SLOT_KEYS) {
+        const text = day[slot] || "";
+        const mealId = (day.mealIds || {})[slot] || null;
+        if (slot === "snack" && !text && !mealId) continue;
+        day.items.push({
+          id: newId("mi"),
+          label: SLOT_LABELS[slot],
+          text,
+          mealId,
+          protein: day.slotProtein && day.slotProtein[slot] != null ? day.slotProtein[slot] : null,
+          eaten: !!((day.eaten || {})[slot]),
+        });
+      }
+      delete day.morning; delete day.noon; delete day.evening; delete day.snack;
+      delete day.eaten; delete day.mealIds; delete day.slotProtein;
+    }
+  }
+  state.seedV = 9;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -430,20 +458,26 @@ function defaultWorkoutDate() {
 }
 
 /* ---------- שבוע תפריט ---------- */
+/* יום = רשימת ארוחות מודולרית: מוסיפים, מוחקים וגוררים לשינוי סדר */
 function blankDayFrom(t) {
-  const mealIds = {}, slotProtein = {};
+  const items = [];
   for (const slot of SLOT_KEYS) {
-    const meal = t.meals && t.meals[slot] ? mealById(t.meals[slot]) : null;
-    mealIds[slot] = meal ? t.meals[slot] : null;
-    slotProtein[slot] = meal ? mealProtein(meal) : null;
+    const text = t[slot] || "";
+    const mealId = t.meals && t.meals[slot] ? t.meals[slot] : null;
+    const meal = mealId ? mealById(mealId) : null;
+    if (slot === "snack" && !text && !meal) continue;
+    items.push({
+      id: newId("mi"), label: SLOT_LABELS[slot], text,
+      mealId: meal ? mealId : null,
+      protein: meal ? mealProtein(meal) : null,
+      eaten: false,
+    });
   }
-  const vals = SLOT_KEYS.map((s) => slotProtein[s]).filter((v) => v != null);
+  const vals = items.map((i) => i.protein).filter((v) => v != null);
   return {
-    morning: t.morning, noon: t.noon, evening: t.evening, snack: t.snack || "", notes: t.notes,
+    items, notes: t.notes,
     protein: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0)) : t.protein,
     fast: t.fast,
-    eaten: { morning: false, noon: false, evening: false, snack: false },
-    mealIds, slotProtein,
   };
 }
 function ensureWeek(weekKey) {
@@ -459,11 +493,8 @@ function copyPrevWeek(weekKey) {
   if (!prev) { alert("אין נתונים לשבוע הקודם — נשארת התבנית."); return; }
   state.weeks[weekKey] = {
     days: prev.days.map((d) => ({
-      morning: d.morning, noon: d.noon, evening: d.evening, snack: d.snack || "", notes: d.notes,
-      protein: d.protein, fast: d.fast,
-      eaten: { morning: false, noon: false, evening: false, snack: false },
-      mealIds: JSON.parse(JSON.stringify(d.mealIds || {})),
-      slotProtein: JSON.parse(JSON.stringify(d.slotProtein || {})),
+      items: (d.items || []).map((it) => ({ ...it, id: newId("mi"), eaten: false })),
+      notes: d.notes, protein: d.protein, fast: d.fast,
     })),
   };
   save();
@@ -559,12 +590,6 @@ $("#btn-reset-week").addEventListener("click", () => {
   }
 });
 
-const MEALS = [
-  { key: "morning", label: "בוקר" },
-  { key: "noon", label: "צהריים" },
-  { key: "evening", label: "ערב" },
-  { key: "snack", label: "ביניים" },
-];
 
 let scrolledToToday = false;
 
@@ -605,24 +630,21 @@ function renderMenu() {
 
     let updateProtein = () => {}; // מוגדר בהמשך, אחרי בניית שורת החלבון
 
-    for (const meal of MEALS) {
-      // שורת "ביניים" מוצגת רק כשיש בה משהו — מוסיפים דרך עריכת היום
-      if (meal.key === "snack" && !day.snack) continue;
+    for (const item of day.items || []) {
       const row = document.createElement("div");
-      row.className = "meal-row" + (day.eaten[meal.key] ? " eaten" : "");
+      row.className = "meal-row" + (item.eaten ? " eaten" : "");
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.checked = day.eaten[meal.key];
+      cb.checked = item.eaten;
       cb.addEventListener("change", () => {
-        day.eaten[meal.key] = cb.checked;
+        item.eaten = cb.checked;
         row.classList.toggle("eaten", cb.checked);
         save();
         updateProtein();
       });
-      const slotP = (day.slotProtein || {})[meal.key];
-      const badge = slotP != null ? `<span class="meal-badge">${slotP} ג׳</span>` : "";
+      const badge = item.protein != null ? `<span class="meal-badge">${item.protein} ג׳</span>` : "";
       const txt = document.createElement("div");
-      txt.innerHTML = `<span class="meal-label">${meal.label}${badge}</span><span class="meal-text">${escapeHtml(day[meal.key])}</span>`;
+      txt.innerHTML = `<span class="meal-label">${escapeHtml(item.label)}${badge}</span><span class="meal-text">${escapeHtml(item.text)}</span>`;
       row.appendChild(cb);
       row.appendChild(txt);
       card.appendChild(row);
@@ -651,11 +673,11 @@ function renderMenu() {
     bar.appendChild(fill);
 
     updateProtein = () => {
-      const slots = day.slotProtein || {};
-      const hasSlots = MEALS.some((m) => slots[m.key] != null);
-      if (hasSlots) {
+      const items = day.items || [];
+      const hasCalc = items.some((i) => i.protein != null);
+      if (hasCalc) {
         // כשמצורפות ארוחות מחושבות — הפס מתקדם לפי מה שבאמת נאכל
-        const eaten = round1(MEALS.reduce((a, m) => a + (day.eaten[m.key] && slots[m.key] != null ? slots[m.key] : 0), 0));
+        const eaten = round1(items.reduce((a, i) => a + (i.eaten && i.protein != null ? i.protein : 0), 0));
         num.innerHTML = `נאכל: <b>${eaten}</b> / ${day.protein} ג׳`;
         fill.style.width = Math.min(100, (eaten / proteinMax()) * 100) + "%";
         fill.classList.toggle("ok", eaten >= proteinMin());
@@ -700,7 +722,7 @@ function escapeHtml(s) {
 
 /* ---------- מודאל עריכת יום ---------- */
 let editingDayIndex = null;
-let editSlots = {}; // מצב זמני של ארוחות מצורפות בזמן עריכה
+let editingItems = []; // עותק עבודה של ארוחות היום בזמן עריכה
 
 function fillMealPicker(sel, selectedId) {
   sel.innerHTML = "";
@@ -743,69 +765,145 @@ function updateEditGap() {
   el.textContent = `חסר ${gap} ג׳ ליעד ${proteinMin()}. להשלמה: ${sugg}, או הגדל מנה קיימת.`;
 }
 
-function refreshEditProteinTotal() {
-  const vals = MEALS.map((m) => editSlots[m.key].protein).filter((v) => v != null);
+function refreshEditTotals() {
+  const vals = editingItems.map((i) => i.protein).filter((v) => v != null);
   if (vals.length) $("#edit-protein").value = Math.round(vals.reduce((a, b) => a + b, 0));
-  for (const m of MEALS) {
-    $("#slot-protein-" + m.key).textContent = editSlots[m.key].protein != null ? `${editSlots[m.key].protein} ג׳` : "";
-  }
   updateEditGap();
+}
+
+/* גרירה לשינוי סדר — עובד גם במגע (pointer events + touch-action:none על הידית).
+   לא מזיזים את האלמנט בזמן הגרירה (זה מנתק את ה-pointer capture) — רק מסמנים
+   קו יעד, ומבצעים את הסידור מחדש בשחרור. */
+function enableDrag(handle, block, wrap) {
+  handle.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    block.classList.add("dragging");
+    let targetIndex = null;
+    const clearMarks = () =>
+      [...wrap.children].forEach((b) => b.classList.remove("drop-before", "drop-after"));
+    const move = (ev) => {
+      clearMarks();
+      const list = [...wrap.children];
+      targetIndex = list.length;
+      for (let i = 0; i < list.length; i++) {
+        const r = list[i].getBoundingClientRect();
+        if (ev.clientY < r.top + r.height / 2) { targetIndex = i; break; }
+      }
+      if (targetIndex < list.length) list[targetIndex].classList.add("drop-before");
+      else list[list.length - 1].classList.add("drop-after");
+    };
+    const finish = () => {
+      handle.removeEventListener("pointermove", move);
+      clearMarks();
+      block.classList.remove("dragging");
+      if (targetIndex != null) {
+        const fromIdx = editingItems.findIndex((x) => x.id === block.dataset.itemId);
+        let to = targetIndex;
+        const [moved] = editingItems.splice(fromIdx, 1);
+        if (to > fromIdx) to--;
+        editingItems.splice(to, 0, moved);
+        renderEditorItems();
+      }
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", finish, { once: true });
+    handle.addEventListener("pointercancel", finish, { once: true });
+  });
+}
+
+function renderEditorItems() {
+  const wrap = $("#edit-items");
+  wrap.innerHTML = "";
+  editingItems.forEach((it) => {
+    const block = document.createElement("div");
+    block.className = "edit-item";
+    block.dataset.itemId = it.id;
+
+    const head = document.createElement("div");
+    head.className = "edit-item-head";
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    const label = document.createElement("input");
+    label.type = "text";
+    label.className = "edit-item-label";
+    label.value = it.label;
+    label.addEventListener("input", () => { it.label = label.value; });
+    const spacer = document.createElement("span");
+    spacer.className = "grow";
+    const pspan = document.createElement("span");
+    pspan.className = "slot-protein";
+    const setP = () => { pspan.textContent = it.protein != null ? `${it.protein} ג׳` : ""; };
+    setP();
+    const del = document.createElement("button");
+    del.className = "del-set";
+    del.textContent = "✕";
+    del.addEventListener("click", () => {
+      editingItems = editingItems.filter((x) => x !== it);
+      renderEditorItems();
+    });
+    head.append(handle, label, spacer, pspan, del);
+
+    const ta = document.createElement("textarea");
+    ta.rows = 2;
+    ta.value = it.text;
+    ta.addEventListener("input", () => { it.text = ta.value; });
+
+    const pickRow = document.createElement("div");
+    pickRow.className = "row gap slot-meal-row";
+    const sel = document.createElement("select");
+    sel.className = "grow";
+    fillMealPicker(sel, it.mealId || "");
+    sel.addEventListener("change", () => {
+      if (sel.value) {
+        const meal = mealById(sel.value);
+        it.mealId = sel.value;
+        it.protein = mealProtein(meal);
+        const names = meal.items.map((x) => (productById(x.productId) || { name: "?" }).name).join(", ");
+        it.text = `${meal.name} (${names})`;
+        ta.value = it.text;
+      } else {
+        it.mealId = null;
+        it.protein = null;
+      }
+      setP();
+      refreshEditTotals();
+    });
+    pickRow.append(sel);
+
+    block.append(head, ta, pickRow);
+    enableDrag(handle, block, wrap);
+    wrap.appendChild(block);
+  });
+  refreshEditTotals();
 }
 
 function openDayEditor(i) {
   editingDayIndex = i;
   const day = state.weeks[currentWeekKey].days[i];
   $("#modal-title").textContent = `עריכת יום ${DAY_NAMES[i]}`;
-  $("#edit-morning").value = day.morning;
-  $("#edit-noon").value = day.noon;
-  $("#edit-evening").value = day.evening;
-  $("#edit-snack").value = day.snack || "";
+  editingItems = (day.items || []).map((it) => ({ ...it }));
   $("#edit-notes").value = day.notes;
   $("#edit-protein").value = day.protein;
   $("#edit-fast").checked = day.fast;
-  const mealIds = day.mealIds || {};
-  const slotP = day.slotProtein || {};
-  editSlots = {};
-  for (const m of MEALS) {
-    editSlots[m.key] = { mealId: mealIds[m.key] || "", protein: slotP[m.key] != null ? slotP[m.key] : null };
-    fillMealPicker($("#meal-pick-" + m.key), editSlots[m.key].mealId);
-  }
-  refreshEditProteinTotal();
+  renderEditorItems();
   $("#modal").classList.remove("hidden");
 }
 
-const SLOT_FIELDS = { morning: "#edit-morning", noon: "#edit-noon", evening: "#edit-evening", snack: "#edit-snack" };
-for (const m of MEALS) {
-  $("#meal-pick-" + m.key).addEventListener("change", (e) => {
-    const id = e.target.value;
-    if (id) {
-      const meal = mealById(id);
-      editSlots[m.key] = { mealId: id, protein: mealProtein(meal) };
-      const names = meal.items.map((it) => (productById(it.productId) || { name: "?" }).name).join(", ");
-      $(SLOT_FIELDS[m.key]).value = `${meal.name} (${names})`;
-    } else {
-      editSlots[m.key] = { mealId: "", protein: null };
-    }
-    refreshEditProteinTotal();
-  });
-}
+$("#edit-item-add").addEventListener("click", () => {
+  editingItems.push({ id: newId("mi"), label: "ארוחה", text: "", mealId: null, protein: null, eaten: false });
+  renderEditorItems();
+});
 $("#edit-protein").addEventListener("input", updateEditGap);
 $("#modal-cancel").addEventListener("click", () => $("#modal").classList.add("hidden"));
 $("#modal").addEventListener("click", (e) => { if (e.target === $("#modal")) $("#modal").classList.add("hidden"); });
 $("#modal-save").addEventListener("click", () => {
   const day = state.weeks[currentWeekKey].days[editingDayIndex];
-  day.morning = $("#edit-morning").value;
-  day.noon = $("#edit-noon").value;
-  day.evening = $("#edit-evening").value;
-  day.snack = $("#edit-snack").value;
+  day.items = editingItems;
   day.notes = $("#edit-notes").value;
   day.protein = Math.max(0, parseInt($("#edit-protein").value, 10) || 0);
   day.fast = $("#edit-fast").checked;
-  day.mealIds = {}; day.slotProtein = {};
-  for (const m of MEALS) {
-    day.mealIds[m.key] = editSlots[m.key].mealId || null;
-    day.slotProtein[m.key] = editSlots[m.key].protein;
-  }
   save();
   $("#modal").classList.add("hidden");
   renderMenu();
@@ -1352,9 +1450,8 @@ function weekProductNeeds(weekKey) {
   const needs = {};
   if (!week) return needs;
   for (const day of week.days) {
-    for (const slot of SLOT_KEYS) {
-      const mealId = day.mealIds && day.mealIds[slot];
-      const meal = mealId ? mealById(mealId) : null;
+    for (const item of day.items || []) {
+      const meal = item.mealId ? mealById(item.mealId) : null;
       if (!meal) continue;
       for (const it of meal.items) needs[it.productId] = (needs[it.productId] || 0) + it.grams;
     }

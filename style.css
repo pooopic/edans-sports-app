@@ -365,6 +365,29 @@ canvas { width: 100%; display: block; }
 }
 .meal-totals span { color: var(--accent); }
 
+.edit-item {
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+.edit-item.dragging { opacity: 0.75; border-color: var(--accent); }
+.edit-item.drop-before { border-top: 3px solid var(--accent); }
+.edit-item.drop-after { border-bottom: 3px solid var(--accent); }
+.edit-item-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.drag-handle {
+  touch-action: none;
+  cursor: grab;
+  color: var(--muted);
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.edit-item-label { width: 90px; padding: 6px; font-size: 0.85rem; }
+.edit-item textarea { margin-bottom: 6px; }
+
 .slot-meal-row { margin: -4px 0 10px; }
 .slot-meal-row select { font-size: 0.85rem; padding: 6px; }
 .slot-protein { color: var(--accent); font-size: 0.85rem; font-weight: 700; white-space: nowrap; min-width: 52px; text-align: center; }
