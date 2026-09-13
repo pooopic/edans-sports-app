@@ -108,6 +108,9 @@ const DEFAULT_PRODUCTS = [
   { id: "p-fishsauce", name: "רוטב דגים",         protein100: 5,    cal100: 35,  unitName: "כף",  unitGrams: 15 },
   { id: "p-mirin",   name: "מירין",               protein100: 0,    cal100: 230, unitName: "כף",  unitGrams: 15 },
   { id: "p-honey",   name: "דבש",                 protein100: 0.3,  cal100: 304, unitName: "כף",  unitGrams: 21 },
+  { id: "p-beef",    name: "בשר בקר טחון (מבושל)", protein100: 26,  cal100: 260 },
+  { id: "p-grapeleaves", name: "עלי גפן",         protein100: 4,    cal100: 70 },
+  { id: "p-oil",     name: "שמן זית",             protein100: 0,    cal100: 884, unitName: "כף",  unitGrams: 14 },
 ];
 /* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
@@ -146,6 +149,18 @@ const DEFAULT_MEALS = [
   ]},
   { id: "m-snack", name: "יוגורט + ביצה קשה וירקות", items: [
     { productId: "p-yogurt", grams: 150 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-grapeleaves", name: "עלי גפן ממולאים (מנה ~8 יח׳)", items: [
+    { productId: "p-rice", grams: 160 },        // המילוי ברובו אורז עגול
+    { productId: "p-beef", grams: 30 },
+    { productId: "p-grapeleaves", grams: 50 },
+    { productId: "p-oil", grams: 10 },
+  ]},
+  { id: "m-cabbage", name: "כרוב ממולא בבשר (מנה ~3 יח׳)", items: [
+    { productId: "p-veg", grams: 120 },         // עלי כרוב + עגבניות הרוטב
+    { productId: "p-rice", grams: 120 },
+    { productId: "p-beef", grams: 60 },
+    { productId: "p-oil", grams: 10 },
   ]},
   { id: "m-thai", name: "סלט תאילנדי חלבון", items: [
     { productId: "p-noodles", grams: 150 },  // מנה: ~50 ג' יבש
@@ -329,11 +344,11 @@ if (state.seedV < 5) {
   save();
 }
 
-/* שדרוג 6: סלט תאילנדי חלבון — מוצרים חדשים + מנה */
-if (state.seedV < 6) {
+/* שדרוג 6-7: מנות ומוצרים חדשים (סלט תאילנדי, עלי גפן, כרוב ממולא) */
+if (state.seedV < 7) {
   for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
   for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
-  state.seedV = 6;
+  state.seedV = 7;
   save();
 }
 
