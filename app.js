@@ -116,6 +116,7 @@ const DEFAULT_PRODUCTS = [
   { id: "p-grapeleaves", name: "עלי גפן",         protein100: 4,    cal100: 70 },
   { id: "p-oil",     name: "שמן זית",             protein100: 0,    cal100: 884, unitName: "כף",  unitGrams: 14 },
   { id: "p-milk",    name: "חלב 3%",              protein100: 3.4,  cal100: 59,  unitName: "כוס", unitGrams: 240 },
+  { id: "p-oats",    name: "שיבולת שועל (יבשה)",  protein100: 13.5, cal100: 389, unitName: "חצי כוס", unitGrams: 40 },
 ];
 /* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
@@ -158,6 +159,11 @@ const DEFAULT_MEALS = [
   { id: "m-shake", name: "שייק חלבון", items: [
     { productId: "p-powder", grams: 30 },   // סקופ
     { productId: "p-milk", grams: 240 },    // כוס חלב; עם מים במקום — 22.5 ג' בלבד
+  ]},
+  { id: "m-shake-oats", name: "שייק חלבון עם שיבולת שועל מושרית", items: [
+    { productId: "p-powder", grams: 30 },
+    { productId: "p-milk", grams: 240 },
+    { productId: "p-oats", grams: 40 },     // חצי כוס, מושרית בשייק
   ]},
   { id: "m-grapeleaves", name: "עלי גפן ממולאים (מנה ~8 יח׳)", items: [
     { productId: "p-rice", grams: 160 },        // המילוי ברובו אורז עגול
@@ -236,6 +242,9 @@ function mealProtein(meal) {
     const p = productById(it.productId);
     return a + (p ? (it.grams * p.protein100) / 100 : 0);
   }, 0));
+}
+function mealGrams(meal) {
+  return meal.items.reduce((a, it) => a + (it.grams || 0), 0);
 }
 function mealCal(meal) {
   return Math.round(meal.items.reduce((a, it) => {
@@ -419,6 +428,14 @@ if (state.seedV < 9) {
     }
   }
   state.seedV = 9;
+  save();
+}
+
+/* שדרוג 10: שיבולת שועל + שייק עם שיבולת מושרית */
+if (state.seedV < 10) {
+  for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
+  for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
+  state.seedV = 10;
   save();
 }
 
@@ -855,10 +872,46 @@ function renderEditorItems() {
     const sel = document.createElement("select");
     sel.className = "grow";
     fillMealPicker(sel, it.mealId || "");
+    pickRow.append(sel);
+
+    // כמות לפי משקל: החלבון מתדרג פרופורציונלית לגרמים ביחס למנה המלאה
+    const gramsRow = document.createElement("div");
+    gramsRow.className = "row gap slot-meal-row grams-row";
+    const gramsIn = document.createElement("input");
+    gramsIn.type = "number"; gramsIn.min = 0; gramsIn.step = 10; gramsIn.inputMode = "numeric";
+    gramsIn.style.width = "90px";
+    const gramsHint = document.createElement("span");
+    gramsHint.className = "grams-hint";
+
+    const refreshGramsRow = () => {
+      const meal = it.mealId ? mealById(it.mealId) : null;
+      gramsRow.classList.toggle("hidden", !meal);
+      if (!meal) return;
+      const base = mealGrams(meal);
+      if (!it.grams) it.grams = base;
+      gramsIn.value = it.grams;
+      const portions = base ? round1(it.grams / base) : 1;
+      gramsHint.textContent = `ג׳ (מנה מלאה = ${base} ג׳ ≈ ${portions} מנות)`;
+    };
+    gramsIn.addEventListener("input", () => {
+      const meal = it.mealId ? mealById(it.mealId) : null;
+      if (!meal) return;
+      const base = mealGrams(meal);
+      it.grams = parseFloat(gramsIn.value) || 0;
+      it.protein = base ? round1((mealProtein(meal) * it.grams) / base) : mealProtein(meal);
+      const portions = base ? round1(it.grams / base) : 1;
+      gramsHint.textContent = `ג׳ (מנה מלאה = ${base} ג׳ ≈ ${portions} מנות)`;
+      setP();
+      refreshEditTotals();
+    });
+    gramsRow.append(gramsIn, gramsHint);
+    refreshGramsRow();
+
     sel.addEventListener("change", () => {
       if (sel.value) {
         const meal = mealById(sel.value);
         it.mealId = sel.value;
+        it.grams = mealGrams(meal);
         it.protein = mealProtein(meal);
         const names = meal.items.map((x) => (productById(x.productId) || { name: "?" }).name).join(", ");
         it.text = `${meal.name} (${names})`;
@@ -866,13 +919,14 @@ function renderEditorItems() {
       } else {
         it.mealId = null;
         it.protein = null;
+        it.grams = null;
       }
+      refreshGramsRow();
       setP();
       refreshEditTotals();
     });
-    pickRow.append(sel);
 
-    block.append(head, ta, pickRow);
+    block.append(head, ta, pickRow, gramsRow);
     enableDrag(handle, block, wrap);
     wrap.appendChild(block);
   });

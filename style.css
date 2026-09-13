@@ -387,6 +387,9 @@ canvas { width: 100%; display: block; }
 }
 .edit-item-label { width: 90px; padding: 6px; font-size: 0.85rem; }
 .edit-item textarea { margin-bottom: 6px; }
+.grams-row { align-items: center; }
+.grams-row input { text-align: center; padding: 6px; }
+.grams-hint { color: var(--muted); font-size: 0.75rem; }
 
 .slot-meal-row { margin: -4px 0 10px; }
 .slot-meal-row select { font-size: 0.85rem; padding: 6px; }
