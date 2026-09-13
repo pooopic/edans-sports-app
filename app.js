@@ -1773,7 +1773,14 @@ function drawRunChart() {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    navigator.serviceWorker.register("sw.js").then((reg) => reg.update()).catch(() => {});
+  });
+  // כשגרסה חדשה נטענה ברקע והשתלטה — רענון אוטומטי חד-פעמי כדי להציג אותה מיד
+  let reloadedForUpdate = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadedForUpdate) return;
+    reloadedForUpdate = true;
+    location.reload();
   });
 }
 
