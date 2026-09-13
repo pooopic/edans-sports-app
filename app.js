@@ -102,6 +102,12 @@ const DEFAULT_PRODUCTS = [
   { id: "p-almonds", name: "שקדים ואגוזים",       protein100: 20,   cal100: 590 },
   { id: "p-bread",   name: "לחם מלא",             protein100: 13,   cal100: 250, unitName: "פרוסה",  unitGrams: 35 },
   { id: "p-veg",     name: "ירקות / סלט",         protein100: 1.5,  cal100: 25 },
+  { id: "p-noodles", name: "אטריות שעועית (מבושלות)", protein100: 0.2, cal100: 86, unitName: "מנה", unitGrams: 150 },
+  { id: "p-onion",   name: "בצל",                 protein100: 1.1,  cal100: 40 },
+  { id: "p-herbs",   name: "עלי תבלין טריים (נענע/כוסברה)", protein100: 3.3, cal100: 44 },
+  { id: "p-fishsauce", name: "רוטב דגים",         protein100: 5,    cal100: 35,  unitName: "כף",  unitGrams: 15 },
+  { id: "p-mirin",   name: "מירין",               protein100: 0,    cal100: 230, unitName: "כף",  unitGrams: 15 },
+  { id: "p-honey",   name: "דבש",                 protein100: 0.3,  cal100: 304, unitName: "כף",  unitGrams: 21 },
 ];
 /* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
@@ -140,6 +146,17 @@ const DEFAULT_MEALS = [
   ]},
   { id: "m-snack", name: "יוגורט + ביצה קשה וירקות", items: [
     { productId: "p-yogurt", grams: 150 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-thai", name: "סלט תאילנדי חלבון", items: [
+    { productId: "p-noodles", grams: 150 },  // מנה: ~50 ג' יבש
+    { productId: "p-tuna", grams: 105 },     // קופסה מסוננת
+    { productId: "p-egg", grams: 165 },      // 3 ביצים
+    { productId: "p-veg", grams: 200 },      // עגבניות (צרובות) + קישואים
+    { productId: "p-onion", grams: 50 },     // סגול או לבן מבושל
+    { productId: "p-herbs", grams: 10 },
+    { productId: "p-fishsauce", grams: 15 },
+    { productId: "p-mirin", grams: 15 },
+    { productId: "p-honey", grams: 10 },
   ]},
 ];
 
@@ -309,6 +326,14 @@ if (state.seedV < 5) {
     holidayWeek.days[6].notes = "חג — חוזרים הביתה אחה\"צ";
   }
   state.seedV = 5;
+  save();
+}
+
+/* שדרוג 6: סלט תאילנדי חלבון — מוצרים חדשים + מנה */
+if (state.seedV < 6) {
+  for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
+  for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
+  state.seedV = 6;
   save();
 }
 
