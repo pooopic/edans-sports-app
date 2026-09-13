@@ -32,7 +32,8 @@ const MENU_TEMPLATE = [
     evening: "סלט עדשים קר + יוגורט יווני",
     notes: "",
     protein: 135, fast: false,
-    meals: { morning: "m-eggs-cottage", noon: "m-asado-rice", evening: "m-lentil-yogurt" },
+    snack: "שייק חלבון (אחרי הריצה)",
+    meals: { morning: "m-eggs-cottage", noon: "m-asado-rice", evening: "m-lentil-yogurt", snack: "m-shake" },
   },
   { // שלישי
     morning: "אופציה לצום 16:8 — רק קפה, או קערת חלבון: יוגורט יווני + אבקת וניל + תערובת שקדים, אגוזים ופירות יבשים",
@@ -48,7 +49,8 @@ const MENU_TEMPLATE = [
     evening: "סלט טונה עם ביצה",
     notes: "",
     protein: 135, fast: false,
-    meals: { morning: "m-cottage-bread", noon: "m-asado-rice", evening: "m-tuna" },
+    snack: "שייק חלבון (אחרי הריצה)",
+    meals: { morning: "m-cottage-bread", noon: "m-asado-rice", evening: "m-tuna", snack: "m-shake" },
   },
   { // חמישי
     morning: "קערת חלבון: יוגורט יווני + אבקת וניל + תערובת שקדים, אגוזים ופירות יבשים",
@@ -64,7 +66,8 @@ const MENU_TEMPLATE = [
     evening: "אסאדו בריבת בצל + אורז + סלט גדול",
     notes: "יום בישולים: אסאדו בתנור (3 שעות), אורז, ביצים קשות, עדשים מבושלות לסלט (מחזיק 4-5 ימים במקרר)",
     protein: 105, fast: false,
-    meals: { morning: null, noon: "m-snack", evening: "m-asado-rice" },
+    snack: "שייק חלבון (אחרי הריצה)",
+    meals: { morning: null, noon: "m-snack", evening: "m-asado-rice", snack: "m-shake" },
   },
   { // שבת
     morning: "חביתה 2-3 ביצים + קוטג׳ + ירקות",
@@ -112,6 +115,7 @@ const DEFAULT_PRODUCTS = [
   { id: "p-beef",    name: "בשר בקר טחון (מבושל)", protein100: 26,  cal100: 260 },
   { id: "p-grapeleaves", name: "עלי גפן",         protein100: 4,    cal100: 70 },
   { id: "p-oil",     name: "שמן זית",             protein100: 0,    cal100: 884, unitName: "כף",  unitGrams: 14 },
+  { id: "p-milk",    name: "חלב 3%",              protein100: 3.4,  cal100: 59,  unitName: "כוס", unitGrams: 240 },
 ];
 /* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
@@ -150,6 +154,10 @@ const DEFAULT_MEALS = [
   ]},
   { id: "m-snack", name: "יוגורט + ביצה קשה וירקות", items: [
     { productId: "p-yogurt", grams: 150 }, { productId: "p-egg", grams: 55 }, { productId: "p-veg", grams: 100 },
+  ]},
+  { id: "m-shake", name: "שייק חלבון", items: [
+    { productId: "p-powder", grams: 30 },   // סקופ
+    { productId: "p-milk", grams: 240 },    // כוס חלב; עם מים במקום — 22.5 ג' בלבד
   ]},
   { id: "m-grapeleaves", name: "עלי גפן ממולאים (מנה ~8 יח׳)", items: [
     { productId: "p-rice", grams: 160 },        // המילוי ברובו אורז עגול
@@ -218,7 +226,7 @@ if (!state.products) {
   save();
 }
 
-const SLOT_KEYS = ["morning", "noon", "evening"];
+const SLOT_KEYS = ["morning", "noon", "evening", "snack"];
 const productById = (id) => state.products.find((p) => p.id === id);
 const mealById = (id) => state.meals.find((m) => m.id === id);
 const round1 = (n) => Math.round(n * 10) / 10;
@@ -357,6 +365,35 @@ if (state.seedV < 7) {
   save();
 }
 
+/* שדרוג 8: סלוט "ביניים" + שייק חלבון בימי ריצה, ויעד מותאם ל-76 ק"ג (120-135) */
+if (state.seedV < 8) {
+  if (state.settings.proteinMin === 130 && state.settings.proteinMax === 140) {
+    state.settings.proteinMin = 120;
+    state.settings.proteinMax = 135;
+  }
+  for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
+  for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
+  const shake = mealById("m-shake");
+  for (const wk of Object.values(state.weeks || {})) {
+    wk.days.forEach((day, i) => {
+      if (day.snack == null) day.snack = "";
+      if (day.eaten && day.eaten.snack == null) day.eaten.snack = false;
+      day.mealIds = day.mealIds || {};
+      day.slotProtein = day.slotProtein || {};
+      // ימי ריצה (ב'/ד'/ו') מקבלים שייק כברירת מחדל, אם לא נקבע שם משהו
+      if (shake && [1, 3, 5].includes(i) && !day.mealIds.snack && !day.snack) {
+        day.mealIds.snack = "m-shake";
+        day.slotProtein.snack = mealProtein(shake);
+        day.snack = "שייק חלבון (אחרי הריצה)";
+        const vals = SLOT_KEYS.map((s) => day.slotProtein[s]).filter((v) => v != null);
+        if (vals.length) day.protein = Math.round(vals.reduce((a, b) => a + b, 0));
+      }
+    });
+  }
+  state.seedV = 8;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -402,10 +439,10 @@ function blankDayFrom(t) {
   }
   const vals = SLOT_KEYS.map((s) => slotProtein[s]).filter((v) => v != null);
   return {
-    morning: t.morning, noon: t.noon, evening: t.evening, notes: t.notes,
+    morning: t.morning, noon: t.noon, evening: t.evening, snack: t.snack || "", notes: t.notes,
     protein: vals.length ? Math.round(vals.reduce((a, b) => a + b, 0)) : t.protein,
     fast: t.fast,
-    eaten: { morning: false, noon: false, evening: false },
+    eaten: { morning: false, noon: false, evening: false, snack: false },
     mealIds, slotProtein,
   };
 }
@@ -422,9 +459,9 @@ function copyPrevWeek(weekKey) {
   if (!prev) { alert("אין נתונים לשבוע הקודם — נשארת התבנית."); return; }
   state.weeks[weekKey] = {
     days: prev.days.map((d) => ({
-      morning: d.morning, noon: d.noon, evening: d.evening, notes: d.notes,
+      morning: d.morning, noon: d.noon, evening: d.evening, snack: d.snack || "", notes: d.notes,
       protein: d.protein, fast: d.fast,
-      eaten: { morning: false, noon: false, evening: false },
+      eaten: { morning: false, noon: false, evening: false, snack: false },
       mealIds: JSON.parse(JSON.stringify(d.mealIds || {})),
       slotProtein: JSON.parse(JSON.stringify(d.slotProtein || {})),
     })),
@@ -526,6 +563,7 @@ const MEALS = [
   { key: "morning", label: "בוקר" },
   { key: "noon", label: "צהריים" },
   { key: "evening", label: "ערב" },
+  { key: "snack", label: "ביניים" },
 ];
 
 let scrolledToToday = false;
@@ -568,6 +606,8 @@ function renderMenu() {
     let updateProtein = () => {}; // מוגדר בהמשך, אחרי בניית שורת החלבון
 
     for (const meal of MEALS) {
+      // שורת "ביניים" מוצגת רק כשיש בה משהו — מוסיפים דרך עריכת היום
+      if (meal.key === "snack" && !day.snack) continue;
       const row = document.createElement("div");
       row.className = "meal-row" + (day.eaten[meal.key] ? " eaten" : "");
       const cb = document.createElement("input");
@@ -719,6 +759,7 @@ function openDayEditor(i) {
   $("#edit-morning").value = day.morning;
   $("#edit-noon").value = day.noon;
   $("#edit-evening").value = day.evening;
+  $("#edit-snack").value = day.snack || "";
   $("#edit-notes").value = day.notes;
   $("#edit-protein").value = day.protein;
   $("#edit-fast").checked = day.fast;
@@ -733,7 +774,7 @@ function openDayEditor(i) {
   $("#modal").classList.remove("hidden");
 }
 
-const SLOT_FIELDS = { morning: "#edit-morning", noon: "#edit-noon", evening: "#edit-evening" };
+const SLOT_FIELDS = { morning: "#edit-morning", noon: "#edit-noon", evening: "#edit-evening", snack: "#edit-snack" };
 for (const m of MEALS) {
   $("#meal-pick-" + m.key).addEventListener("change", (e) => {
     const id = e.target.value;
@@ -756,6 +797,7 @@ $("#modal-save").addEventListener("click", () => {
   day.morning = $("#edit-morning").value;
   day.noon = $("#edit-noon").value;
   day.evening = $("#edit-evening").value;
+  day.snack = $("#edit-snack").value;
   day.notes = $("#edit-notes").value;
   day.protein = Math.max(0, parseInt($("#edit-protein").value, 10) || 0);
   day.fast = $("#edit-fast").checked;
