@@ -340,14 +340,14 @@ if (state.seedV < 4) {
     if (it.name.startsWith("פטרוזיליה")) { it.notes = "כולל חופן קצוץ למתכונים"; }
   }
   addIfMissing({ cat: "ירקות", name: "כרוב לבן גדול", qty: "1", notes: "למתכון הכרוב הממולא — לריכוך עלים" });
-  addIfMissing({ cat: "ירקות", name: "בצל רגיל", qty: "5 יח׳", notes: "למתכונים: 1.5 למילוי עלי הגפן, 2 לתחתית הסיר, 1 לכרוב" });
+  addIfMissing({ cat: "ירקות", name: "בצל רגיל", qty: "5 יח׳", notes: "למתכונים: 1.5 למילוי עלי הגפן, 2 לתחתית הסיר, 1 לכרוב", productId: "p-onion" });
   addIfMissing({ cat: "ירקות", name: "בצל ירוק", qty: "חבילה", notes: "למתכונים — חצי לשלב הראשון של המילוי, חצי בהמשך" });
   addIfMissing({ cat: "ירקות", name: "סלרי", qty: "צרור", notes: "למתכונים — 5 גבעולים" });
   addIfMissing({ cat: "בשר", name: "בשר בקר טחון", qty: "500 ג׳", notes: "למילוי עלי הגפן והכרוב" });
   addIfMissing({ cat: "יבשים ושימורים", name: "אורז עגול", qty: "שקית 1.5 ק\"ג", notes: "למתכונים צריך ~1.2 ק\"ג (1 ק\"ג לעלי גפן + כוס לכרוב) — לא להתבלבל עם האורז הרגיל" });
   addIfMissing({ cat: "יבשים ושימורים", name: "עלי גפן משומרים", qty: "2 צנצנות", notes: "או ק\"ג עלים טריים אם יש בעונה" });
   addIfMissing({ cat: "יבשים ושימורים", name: "רסק עגבניות", qty: "פחית קטנה", notes: "למתכונים — צריך 3-4 כפות" });
-  addIfMissing({ cat: "יבשים ושימורים", name: "שמן זית", qty: "בקבוק", notes: "למתכונים צריך ~300 מ\"ל — לבדוק כמה יש בבית" });
+  addIfMissing({ cat: "יבשים ושימורים", name: "שמן זית", qty: "בקבוק", notes: "למתכונים צריך ~300 מ\"ל — לבדוק כמה יש בבית", productId: "p-oil" });
   addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "מלח + פלפל שחור גרוס", qty: "לבדוק שיש", notes: "" });
   addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "פפריקה מתוקה", qty: "לבדוק שיש", notes: "צריך ~4 כפות" });
   addIfMissing({ cat: "תבלינים (לבדוק מה יש בבית)", name: "כמון", qty: "לבדוק שיש", notes: "צריך כף" });
@@ -1519,8 +1519,34 @@ function formatNeed(productId, grams) {
   return grams >= 1000 ? `~${round1(grams / 1000)} ק״ג` : `~${Math.round(grams)} ג׳`;
 }
 
+/* סנכרון אוטומטי: כל מוצר שהתפריט של השבוע צריך ואין לו פריט קנייה — נוסף לבד.
+   פריט אוטומטי שהצורך בו נעלם (והוא לא סומן) — מוסר. */
+function syncShoppingWithMenu(weekKey) {
+  const list = ensureShopping(weekKey);
+  const needs = weekProductNeeds(weekKey);
+  let changed = false;
+  for (const [pid, grams] of Object.entries(needs)) {
+    if (!grams || pid === "p-veg") continue; // ירקות מכוסים בפריטי הירקות הקיימים
+    const p = productById(pid);
+    if (!p) continue;
+    const covered = list.items.some((i) =>
+      i.productId === pid || i.name.includes(p.name) || p.name.includes(i.name));
+    if (covered) continue;
+    list.items.push({
+      id: newId("s"), cat: "מהתפריט (אוטומטי)", name: p.name,
+      qty: formatNeed(pid, grams), notes: "נוסף אוטומטית — בשימוש בתפריט השבוע",
+      productId: pid, checked: false, auto: true,
+    });
+    changed = true;
+  }
+  const before = list.items.length;
+  list.items = list.items.filter((i) => !(i.auto && !i.checked && !needs[i.productId]));
+  if (changed || list.items.length !== before) save();
+  return list;
+}
+
 function renderShopping() {
-  const list = ensureShopping(currentWeekKey);
+  const list = syncShoppingWithMenu(currentWeekKey);
   const endKey = addDays(currentWeekKey, 6);
   $("#shop-week-label").textContent = `${shortDate(currentWeekKey)} – ${shortDate(endKey)}`;
   const bought = list.items.filter((i) => i.checked).length;
