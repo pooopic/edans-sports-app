@@ -250,6 +250,11 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 .add-set { margin-top: 4px; }
 
 .rest-btn { flex: 1; }
+.rope-role { color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+.run-pace { font-size: 1.2rem; font-weight: 800; color: var(--accent); padding-top: 6px; }
+.core-block { margin-bottom: 10px; }
+.core-sets input { text-align: center; }
+.chip.restday { opacity: 0.5; }
 .rest-clock { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 74px; text-align: center; }
 .rest-clock.running { color: var(--warn); }
 

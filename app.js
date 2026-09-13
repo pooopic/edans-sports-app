@@ -7,8 +7,10 @@
 
 const STORE_KEY = "edan-tracker-v1";
 const DAY_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
-const WORKOUT_DAYS = [0, 1, 2, 3, 4, 5, 6]; // אימון כל יום
-const STRENGTH_DAYS = [0, 2, 4]; // ימי משקולות מומלצים: ראשון, שלישי, חמישי
+const STRENGTH_DAYS = [0, 2, 4]; // א'/ג'/ה' — כוח: חבל (חימום) ← מתח ← משקולות
+const RUN_DAYS = [1, 3, 5];      // ב'/ד'/ו' — ריצה (או חבל) + ליבה
+const REST_DAY = 6;              // שבת — מנוחה מלאה, אין רישום
+const WORKOUT_DAYS = [0, 1, 2, 3, 4, 5];
 const DAY_SHORT = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 const PROTEIN_MIN = 130;
 const PROTEIN_MAX = 140;
@@ -75,11 +77,15 @@ const MENU_TEMPLATE = [
 
 /* ---------- תבנית אימון (מותאמת לציוד הביתי) ---------- */
 const EXERCISES = [
-  { id: "squat",    name: "סקוואט גובלט",   equip: "משקולת 5 ק״ג צמוד לחזה", defSets: 3, defReps: 10, defWeight: 5 },
-  { id: "press",    name: "לחיצה",          equip: "משקולות 5 ק״ג / שכיבות TRX", defSets: 3, defReps: 10, defWeight: 5 },
-  { id: "row",      name: "חתירה",          equip: "TRX / משקולות", defSets: 3, defReps: 10, defWeight: 0 },
-  { id: "rdl",      name: "דדליפט רומני",   equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 12, defWeight: 10 },
+  { id: "row",     name: "חתירה בעמידה (Bent Over Row)", equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 10, defWeight: 10 },
+  { id: "ohp",     name: "לחיצת כתפיים",                 equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 10, defWeight: 10 },
+  { id: "rdl",     name: "דדליפט רומני",                 equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 12, defWeight: 10 },
+  { id: "rearfly", name: "Rear Delt Fly",                equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 12, defWeight: 10 },
+  { id: "curl",    name: "Curl",                          equip: "משקולות 5 ק״ג — Hammer/רגיל מתחלפים", defSets: 3, defReps: 10, defWeight: 10 },
 ];
+/* תרגילים ישנים שהוסרו מהתוכנית — נשמרים בגרפים כארכיון */
+const LEGACY_EXERCISES = { squat: "סקוואט גובלט (ארכיון)", press: "לחיצה (ארכיון)" };
+const CURL_NAMES = { hammer: "Hammer Curl", regular: "Curl רגיל" };
 const PULLUP_TYPES = ["מלא", "עם גומייה (35 ק״ג)", "שלילי (ירידה איטית)"];
 
 /* ---------- מאגר מוצרים התחלתי (ערכים תזונתיים סטנדרטיים, ל-100 ג׳) ---------- */
@@ -336,7 +342,9 @@ let currentWeekKey = weekKeyOf(new Date());
 let currentWorkoutDate = defaultWorkoutDate();
 
 function defaultWorkoutDate() {
-  return todayIso(); // אימון כל יום — ברירת המחדל היא היום
+  // היום, אלא אם שבת (מנוחה) — ואז מחר
+  const t = new Date();
+  return t.getDay() === REST_DAY ? addDays(iso(t), 1) : iso(t);
 }
 
 /* ---------- שבוע תפריט ---------- */
@@ -384,19 +392,26 @@ function copyPrevWeek(weekKey) {
 function ensureWorkout(dateIso) {
   if (!state.workouts[dateIso]) {
     const prev = lastWorkoutBefore(dateIso);
+    // משקולות, מתח ו-Curl ממשיכים מאימון הכוח האחרון — לא מימי ריצה
+    const prevStrength = lastStrengthWorkoutBefore(dateIso);
     const exercises = {};
     for (const ex of EXERCISES) {
-      const prevSets = prev && prev.exercises[ex.id] && prev.exercises[ex.id].length
-        ? prev.exercises[ex.id]
+      const prevSets = prevStrength && prevStrength.exercises[ex.id] && prevStrength.exercises[ex.id].length
+        ? prevStrength.exercises[ex.id]
         : null;
       exercises[ex.id] = prevSets
         ? prevSets.map((s) => ({ reps: s.reps, weight: s.weight }))
         : Array.from({ length: ex.defSets }, () => ({ reps: ex.defReps, weight: ex.defWeight }));
     }
-    const pullups = prev && prev.pullups && prev.pullups.length
-      ? prev.pullups.map((s) => ({ type: s.type, reps: s.reps }))
-      : [ { type: PULLUP_TYPES[0], reps: 3 }, { type: PULLUP_TYPES[1], reps: 6 }, { type: PULLUP_TYPES[1], reps: 6 } ];
+    const pullups = prevStrength && prevStrength.pullups && prevStrength.pullups.length
+      ? prevStrength.pullups.map((s) => ({ type: s.type, reps: s.reps }))
+      : [ { type: PULLUP_TYPES[0], reps: 4 }, { type: PULLUP_TYPES[1], reps: 7 }, { type: PULLUP_TYPES[1], reps: 7 } ];
     state.workouts[dateIso] = {
+      curlVariant: prevStrength && prevStrength.curlVariant === "hammer" ? "regular" : "hammer",
+      run: { km: 0, minutes: 0 },
+      core: prev && prev.core
+        ? { plank: [...prev.core.plank], abName: prev.core.abName, abs: [...prev.core.abs] }
+        : { plank: [30, 30, 0], abName: "כפיפות בטן", abs: [15, 15, 0] },
       ropeMode: prev ? (prev.ropeMode || "count") : "count",
       ropeMinutes: 0, ropeRounds: 10,
       ropeJumpsPerSet: prev ? (prev.ropeJumpsPerSet || 50) : 50,
@@ -411,6 +426,12 @@ function ensureWorkout(dateIso) {
 }
 function lastWorkoutBefore(dateIso) {
   const keys = Object.keys(state.workouts).filter((k) => k < dateIso).sort();
+  return keys.length ? state.workouts[keys[keys.length - 1]] : null;
+}
+function lastStrengthWorkoutBefore(dateIso) {
+  const keys = Object.keys(state.workouts)
+    .filter((k) => k < dateIso && STRENGTH_DAYS.includes(fromIso(k).getDay()))
+    .sort();
   return keys.length ? state.workouts[keys[keys.length - 1]] : null;
 }
 
@@ -647,23 +668,111 @@ $("#modal-save").addEventListener("click", () => {
 
 /* ============================ מסך אימונים ============================ */
 
+function normalizeWorkout(w) {
+  // אימונים שנשמרו בגרסאות קודמות — משלימים שדות חדשים
+  if (!w.run) w.run = { km: 0, minutes: 0 };
+  if (!w.core) w.core = { plank: [30, 30, 0], abName: "כפיפות בטן", abs: [15, 15, 0] };
+  if (!w.curlVariant) w.curlVariant = "hammer";
+  for (const ex of EXERCISES) {
+    if (!w.exercises[ex.id]) {
+      w.exercises[ex.id] = Array.from({ length: ex.defSets }, () => ({ reps: ex.defReps, weight: ex.defWeight }));
+    }
+  }
+  return w;
+}
+
 function renderWorkout() {
   renderWorkoutChips();
-  const w = ensureWorkout(currentWorkoutDate);
-
   const wd = fromIso(currentWorkoutDate).getDay();
-  $("#workout-day-type").textContent = STRENGTH_DAYS.includes(wd)
-    ? "💪 יום משקולות: פול־בודי + חבל + מתח"
-    : "🪢 יום קל: חבל + מתח (בלי משקולות — מנוחה לשרירים)";
+  const isRest = wd === REST_DAY;
+  const isStrength = STRENGTH_DAYS.includes(wd);
+
+  // שבת: מנוחה מלאה — אין רישום
+  $("#card-rest").classList.toggle("hidden", !isRest);
+  $("#card-run").classList.toggle("hidden", isRest || isStrength);
+  $("#card-rope").classList.toggle("hidden", isRest);
+  $("#card-pullups").classList.toggle("hidden", isRest || !isStrength);
+  $("#card-weights").classList.toggle("hidden", isRest || !isStrength);
+  $("#card-core").classList.toggle("hidden", isRest || isStrength);
+  $("#card-timer").classList.toggle("hidden", isRest);
+  $("#btn-finish-workout").classList.toggle("hidden", isRest);
+
+  if (isRest) {
+    $("#workout-day-type").textContent = "😴 מנוחה מלאה";
+    return;
+  }
+
+  $("#workout-day-type").textContent = isStrength
+    ? "💪 אימון כוח: חבל (חימום) ← מתח ← משקולות"
+    : "🏃 ריצה (או חבל אם לא רצת) + ליבה";
+  $("#rope-role").textContent = isStrength ? "· חימום 5–8 דק׳" : "· אם לא רצת";
+
+  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
 
   renderRope(w);
-  renderExercises(w);
-  renderPullups(w);
+  renderRun(w);
+  if (isStrength) {
+    renderExercises(w);
+    renderPullups(w);
+  }
+  renderCore(w);
 
   const finishBtn = $("#btn-finish-workout");
   finishBtn.textContent = w.done ? "✔ האימון הושלם (לחץ לביטול)" : "✅ סיים אימון";
   finishBtn.classList.toggle("done", w.done);
 }
+
+/* ---------- ריצה ---------- */
+function paceText(km, minutes) {
+  if (!km || !minutes) return "—";
+  const paceMin = minutes / km;
+  const mm = Math.floor(paceMin);
+  const ss = Math.round((paceMin - mm) * 60);
+  return `${mm}:${String(ss).padStart(2, "0")} דק׳/ק״מ`;
+}
+function renderRun(w) {
+  $("#run-km").value = w.run.km || "";
+  $("#run-minutes").value = w.run.minutes || "";
+  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
+}
+$("#run-km").addEventListener("input", () => {
+  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  w.run.km = parseFloat($("#run-km").value) || 0;
+  save();
+  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
+});
+$("#run-minutes").addEventListener("input", () => {
+  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  w.run.minutes = parseFloat($("#run-minutes").value) || 0;
+  save();
+  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
+});
+
+/* ---------- ליבה ---------- */
+function renderCore(w) {
+  [1, 2, 3].forEach((n, i) => {
+    $("#plank-" + n).value = w.core.plank[i] || "";
+    $("#ab-" + n).value = w.core.abs[i] || "";
+  });
+  $("#ab-name").value = w.core.abName || "";
+}
+[1, 2, 3].forEach((n, i) => {
+  $("#plank-" + n).addEventListener("input", () => {
+    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+    w.core.plank[i] = parseInt($("#plank-" + n).value, 10) || 0;
+    save();
+  });
+  $("#ab-" + n).addEventListener("input", () => {
+    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+    w.core.abs[i] = parseInt($("#ab-" + n).value, 10) || 0;
+    save();
+  });
+});
+$("#ab-name").addEventListener("input", () => {
+  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  w.core.abName = $("#ab-name").value;
+  save();
+});
 
 function renderWorkoutChips() {
   // מהיום ושבוע קדימה — לא מציגים ימים שכבר עברו
@@ -676,8 +785,10 @@ function renderWorkoutChips() {
     chip.className = "chip"
       + (dateIso === currentWorkoutDate ? " active" : "")
       + (i === 0 ? " today" : "")
+      + (wd === REST_DAY ? " restday" : "")
       + (state.workouts[dateIso] && state.workouts[dateIso].done ? " done" : "");
-    chip.textContent = i === 0 ? `היום · ${DAY_SHORT[wd]}` : `${DAY_SHORT[wd]} ${shortDate(dateIso)}`;
+    chip.textContent = (i === 0 ? `היום · ${DAY_SHORT[wd]}` : `${DAY_SHORT[wd]} ${shortDate(dateIso)}`)
+      + (wd === REST_DAY ? " 😴" : "");
     chip.addEventListener("click", () => { currentWorkoutDate = dateIso; renderWorkout(); });
     wrap.appendChild(chip);
   }
@@ -757,16 +868,19 @@ $("#rope-rounds").addEventListener("input", () => {
 function renderExercises(w) {
   const wrap = $("#exercise-list");
   wrap.innerHTML = "";
-  const prev = lastWorkoutBefore(currentWorkoutDate);
+  const prev = lastStrengthWorkoutBefore(currentWorkoutDate);
 
   for (const ex of EXERCISES) {
     const sets = w.exercises[ex.id];
     const box = document.createElement("div");
     box.className = "exercise";
 
+    const displayName = ex.id === "curl"
+      ? `${CURL_NAMES[w.curlVariant] || CURL_NAMES.hammer} <span class="meal-badge">היום</span>`
+      : ex.name;
     const head = document.createElement("div");
     head.className = "exercise-head";
-    head.innerHTML = `<div><div class="exercise-name">${ex.name}</div><div class="exercise-equip">${ex.equip}</div></div>`;
+    head.innerHTML = `<div><div class="exercise-name">${displayName}</div><div class="exercise-equip">${ex.equip}</div></div>`;
     box.appendChild(head);
 
     if (prev && prev.exercises[ex.id] && prev.exercises[ex.id].length) {
@@ -864,6 +978,63 @@ $("#pullup-add").addEventListener("click", () => {
   w.pullups.push(last ? { type: last.type, reps: last.reps } : { type: PULLUP_TYPES[0], reps: 3 });
   save();
   renderPullups(w);
+});
+
+/* ---------- ייצוא לוח שבועי ליומן (.ics) ---------- */
+if (!state.settings) state.settings = { workoutTime: "07:00", workoutDur: 45 };
+
+function nextDateOfDay(weekday) { // התאריך הקרוב (כולל היום) של יום נתון
+  const d = new Date();
+  while (d.getDay() !== weekday) d.setDate(d.getDate() + 1);
+  return d;
+}
+function icsDate(d, timeStr) {
+  const [hh, mm] = timeStr.split(":");
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}T${hh}${mm}00`;
+}
+function buildICS() {
+  const time = state.settings.workoutTime || "07:00";
+  const dur = state.settings.workoutDur || 45;
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const alarms =
+    "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:אימון מחר\r\nTRIGGER:-PT12H\r\nEND:VALARM\r\n" +
+    "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:אימון עוד חצי שעה\r\nTRIGGER:-PT30M\r\nEND:VALARM\r\n";
+  const ev = (uid, summary, desc, firstDay, byday) =>
+    "BEGIN:VEVENT\r\n" +
+    `UID:${uid}@edans-sports-app\r\n` +
+    `DTSTAMP:${stamp}\r\n` +
+    `DTSTART;TZID=Asia/Jerusalem:${icsDate(nextDateOfDay(firstDay), time)}\r\n` +
+    `DURATION:PT${dur}M\r\n` +
+    `RRULE:FREQ=WEEKLY;BYDAY=${byday}\r\n` +
+    `SUMMARY:${summary}\r\n` +
+    `DESCRIPTION:${desc}\r\n` +
+    alarms +
+    "END:VEVENT\r\n";
+  return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//edans-sports-app//HE\r\n" +
+    "BEGIN:VTIMEZONE\r\nTZID:Asia/Jerusalem\r\n" +
+    "BEGIN:DAYLIGHT\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0300\r\nTZNAME:IDT\r\nDTSTART:19700327T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1FR\r\nEND:DAYLIGHT\r\n" +
+    "BEGIN:STANDARD\r\nTZOFFSETFROM:+0300\r\nTZOFFSETTO:+0200\r\nTZNAME:IST\r\nDTSTART:19701025T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\n" +
+    "END:VTIMEZONE\r\n" +
+    ev("strength", "💪 אימון כוח — חבל, מתח, משקולות",
+      "חבל 5-8 דק' חימום (30/30) ← מתח ← משקולות: חתירה בעמידה, לחיצת כתפיים, דדליפט רומני, Rear Delt Fly, Curl",
+      0, "SU,TU,TH") +
+    ev("run", "🏃 ריצה + ליבה",
+      "ריצה (או חבל אם לא רצת) + פלאנק ובטן",
+      1, "MO,WE,FR") +
+    "END:VCALENDAR\r\n";
+}
+$("#ics-time").addEventListener("input", () => { state.settings.workoutTime = $("#ics-time").value || "07:00"; save(); });
+$("#ics-dur").addEventListener("input", () => { state.settings.workoutDur = parseInt($("#ics-dur").value, 10) || 45; save(); });
+$("#ics-time").value = state.settings.workoutTime || "07:00";
+$("#ics-dur").value = state.settings.workoutDur || 45;
+$("#ics-export").addEventListener("click", () => {
+  const blob = new Blob([buildICS()], { type: "text/calendar;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edan-workouts.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 });
 
 $("#btn-finish-workout").addEventListener("click", () => {
@@ -1369,6 +1540,7 @@ function renderProgress() {
   drawProteinChart();
   fillExerciseSelect();
   drawWeightsChart();
+  drawRunChart();
   drawPullupsChart();
 }
 
@@ -1461,15 +1633,31 @@ function drawProteinChart() {
   });
 }
 
+let exerciseSelectBound = false;
 function fillExerciseSelect() {
   const sel = $("#chart-exercise-select");
-  if (sel.options.length) return;
+  const prevValue = sel.value;
+  sel.innerHTML = "";
   for (const ex of EXERCISES) {
     const opt = document.createElement("option");
-    opt.value = ex.id; opt.textContent = ex.name;
+    opt.value = ex.id; opt.textContent = ex.id === "curl" ? "Curl (שתי הווריאציות)" : ex.name;
     sel.appendChild(opt);
   }
-  sel.addEventListener("change", drawWeightsChart);
+  // תרגילים ישנים עם היסטוריה — נשארים זמינים בגרף כארכיון
+  for (const [id, name] of Object.entries(LEGACY_EXERCISES)) {
+    const hasData = completedWorkouts().some(([, w]) =>
+      w.exercises[id] && w.exercises[id].some((s) => (s.weight || 0) > 0));
+    if (hasData) {
+      const opt = document.createElement("option");
+      opt.value = id; opt.textContent = name;
+      sel.appendChild(opt);
+    }
+  }
+  if (prevValue && [...sel.options].some((o) => o.value === prevValue)) sel.value = prevValue;
+  if (!exerciseSelectBound) {
+    sel.addEventListener("change", drawWeightsChart);
+    exerciseSelectBound = true;
+  }
 }
 
 function completedWorkouts() {
@@ -1522,13 +1710,23 @@ function drawWeightsChart() {
 }
 
 function drawPullupsChart() {
+  // רק סט 1 מלא — מדד ההתקדמות האמיתי לקראת 7 מלאים
   const points = completedWorkouts()
+    .filter(([, w]) => (w.pullups || []).length)
     .map(([date, w]) => {
-      const full = (w.pullups || []).filter((s) => s.type === PULLUP_TYPES[0]);
-      return { label: shortDate(date), val: full.reduce((a, s) => a + (s.reps || 0), 0) };
+      const firstFull = w.pullups.find((s) => s.type === PULLUP_TYPES[0]);
+      return { label: shortDate(date), val: firstFull ? firstFull.reps || 0 : 0 };
     })
     .slice(-10);
   drawLineChart($("#chart-pullups"), points, "");
+}
+
+function drawRunChart() {
+  const points = completedWorkouts()
+    .filter(([, w]) => w.run && w.run.km > 0)
+    .map(([date, w]) => ({ label: shortDate(date), val: w.run.km }))
+    .slice(-10);
+  drawLineChart($("#chart-run"), points, ' ק"מ');
 }
 
 /* ============================ אתחול ============================ */
