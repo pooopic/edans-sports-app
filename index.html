@@ -28,6 +28,16 @@
       <button id="btn-copy-week" class="btn small">📋 שכפל שבוע קודם</button>
       <button id="btn-reset-week" class="btn small ghost">↺ אפס לתבנית</button>
     </div>
+    <div class="card target-card">
+      <div class="row gap center">
+        <span>🎯 יעד חלבון יומי:</span>
+        <input id="target-min" type="number" min="50" max="300" inputmode="numeric" class="target-input">
+        <span>–</span>
+        <input id="target-max" type="number" min="50" max="300" inputmode="numeric" class="target-input">
+        <span>ג׳</span>
+      </div>
+      <div id="week-summary" class="week-summary"></div>
+    </div>
     <div id="menu-days"></div>
     <p class="footnote">יעד: ‏130–140 ג׳ חלבון ביום, ‏~1,800–2,000 קלוריות (הערכה בלבד). צום 16:8 = דילוג על בוקר ואכילה בין 12:00 ל־20:00.</p>
   </section>
@@ -310,6 +320,7 @@
     </div>
     <label>הערות<textarea id="edit-notes" rows="2"></textarea></label>
     <label>הערכת חלבון יומית (ג׳) — מתעדכן אוטומטית כשמצרפים ארוחות<input id="edit-protein" type="number" min="0" max="300" inputmode="numeric"></label>
+    <div id="edit-gap" class="edit-gap"></div>
     <label class="row check"><input id="edit-fast" type="checkbox"> יום צום 16:8</label>
     <div class="row gap">
       <button id="modal-save" class="btn primary grow">שמור</button>

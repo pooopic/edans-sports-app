@@ -12,8 +12,9 @@ const RUN_DAYS = [1, 3, 5];      // ב'/ד'/ו' — ריצה (או חבל) + ל�
 const REST_DAY = 6;              // שבת — מנוחה מלאה, אין רישום
 const WORKOUT_DAYS = [0, 1, 2, 3, 4, 5];
 const DAY_SHORT = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
-const PROTEIN_MIN = 130;
-const PROTEIN_MAX = 140;
+// יעד חלבון יומי — ניתן לעריכה במסך התפריט (state.settings)
+const proteinMin = () => (state.settings && state.settings.proteinMin) || 130;
+const proteinMax = () => (state.settings && state.settings.proteinMax) || 140;
 
 /* ---------- תבנית תפריט (יובאה מגיליון "תפריט שבועי" באקסל) ---------- */
 const MENU_TEMPLATE = [
@@ -207,6 +208,10 @@ const DEFAULT_SHOPPING = [
 /* ============================ state ============================ */
 
 let state = load();
+state.settings = Object.assign(
+  { workoutTime: "07:00", workoutDur: 45, proteinMin: 130, proteinMax: 140 },
+  state.settings || {}
+);
 if (!state.products) {
   state.products = JSON.parse(JSON.stringify(DEFAULT_PRODUCTS));
   state.meals = JSON.parse(JSON.stringify(DEFAULT_MEALS));
@@ -499,6 +504,16 @@ $$(".navbtn").forEach((btn) => {
 $("#week-prev").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, -7); renderMenu(); });
 $("#week-next").addEventListener("click", () => { currentWeekKey = addDays(currentWeekKey, 7); renderMenu(); });
 $("#btn-copy-week").addEventListener("click", () => copyPrevWeek(currentWeekKey));
+$("#target-min").addEventListener("change", () => {
+  state.settings.proteinMin = parseInt($("#target-min").value, 10) || 130;
+  save();
+  renderMenu();
+});
+$("#target-max").addEventListener("change", () => {
+  state.settings.proteinMax = parseInt($("#target-max").value, 10) || 140;
+  save();
+  renderMenu();
+});
 $("#btn-reset-week").addEventListener("click", () => {
   if (confirm("לאפס את השבוע לתבנית המקורית?")) {
     state.weeks[currentWeekKey] = { days: MENU_TEMPLATE.map(blankDayFrom) };
@@ -521,6 +536,13 @@ function renderMenu() {
   $("#week-label").textContent = `${shortDate(currentWeekKey)} – ${shortDate(endKey)}`;
   const now = new Date();
   $("#today-label").textContent = `היום: יום ${DAY_NAMES[now.getDay()]}, ${shortDate(todayIso())}`;
+
+  $("#target-min").value = proteinMin();
+  $("#target-max").value = proteinMax();
+  const daysOnTarget = week.days.filter((d) => d.protein >= proteinMin()).length;
+  $("#week-summary").innerHTML = daysOnTarget === 7
+    ? `כל השבוע מתוכנן ביעד 💪`
+    : `<b>${daysOnTarget} מתוך 7</b> ימים מתוכננים ביעד — פתח יום חסר (✏️) כדי להשלים`;
 
   const wrap = $("#menu-days");
   wrap.innerHTML = "";
@@ -595,12 +617,12 @@ function renderMenu() {
         // כשמצורפות ארוחות מחושבות — הפס מתקדם לפי מה שבאמת נאכל
         const eaten = round1(MEALS.reduce((a, m) => a + (day.eaten[m.key] && slots[m.key] != null ? slots[m.key] : 0), 0));
         num.innerHTML = `נאכל: <b>${eaten}</b> / ${day.protein} ג׳`;
-        fill.style.width = Math.min(100, (eaten / PROTEIN_MAX) * 100) + "%";
-        fill.classList.toggle("ok", eaten >= PROTEIN_MIN);
+        fill.style.width = Math.min(100, (eaten / proteinMax()) * 100) + "%";
+        fill.classList.toggle("ok", eaten >= proteinMin());
       } else {
         num.innerHTML = `חלבון: <b>${day.protein}</b> ג׳`;
-        fill.style.width = Math.min(100, (day.protein / PROTEIN_MAX) * 100) + "%";
-        fill.classList.toggle("ok", day.protein >= PROTEIN_MIN);
+        fill.style.width = Math.min(100, (day.protein / proteinMax()) * 100) + "%";
+        fill.classList.toggle("ok", day.protein >= proteinMin());
       }
     };
     minus.addEventListener("click", () => { day.protein = Math.max(0, day.protein - 5); save(); updateProtein(); });
@@ -609,6 +631,18 @@ function renderMenu() {
 
     prow.append(minus, num, plus, bar);
     card.appendChild(prow);
+
+    // שורת מסקנה: כמה חסר ליעד בתכנון של היום הזה
+    const status = document.createElement("div");
+    const drawStatus = () => {
+      const gap = proteinMin() - day.protein;
+      status.className = "day-target-status " + (gap > 0 ? "short" : "ok");
+      status.textContent = gap > 0 ? `חסר ${gap} ג׳ ליעד — הוסף השלמה או הגדל מנה` : "✓ מתוכנן ביעד";
+    };
+    drawStatus();
+    const origUpdate = updateProtein;
+    updateProtein = () => { origUpdate(); drawStatus(); };
+    card.appendChild(status);
     wrap.appendChild(card);
   });
 
@@ -642,12 +676,40 @@ function fillMealPicker(sel, selectedId) {
   }
 }
 
+function updateEditGap() {
+  const planned = parseInt($("#edit-protein").value, 10) || 0;
+  const gap = proteinMin() - planned;
+  const el = $("#edit-gap");
+  if (gap <= 0) {
+    el.className = "edit-gap ok";
+    el.textContent = `✓ ${planned} ג׳ — היום מתוכנן ביעד (${proteinMin()}–${proteinMax()})`;
+    return;
+  }
+  // הצעות השלמה: ארוחות מהספרייה + מוצרים בודדים לפי יחידה (ביצה, גביע...)
+  const pool = state.meals
+    .map((m) => ({ name: m.name, p: mealProtein(m) }))
+    .concat(state.products
+      .filter((pr) => pr.unitName && pr.unitGrams && pr.protein100 >= 5)
+      .map((pr) => ({
+        name: pr.unitName === pr.name ? pr.name : `${pr.unitName} ${pr.name}`,
+        p: round1((pr.unitGrams * pr.protein100) / 100),
+      })));
+  const options = pool
+    .filter((o) => o.p > 2)
+    .sort((a, b) => Math.abs(a.p - gap) - Math.abs(b.p - gap))
+    .slice(0, 2);
+  const sugg = options.map((o) => `${o.name} (+${o.p})`).join(" או ");
+  el.className = "edit-gap short";
+  el.textContent = `חסר ${gap} ג׳ ליעד ${proteinMin()}. להשלמה: ${sugg}, או הגדל מנה קיימת.`;
+}
+
 function refreshEditProteinTotal() {
   const vals = MEALS.map((m) => editSlots[m.key].protein).filter((v) => v != null);
   if (vals.length) $("#edit-protein").value = Math.round(vals.reduce((a, b) => a + b, 0));
   for (const m of MEALS) {
     $("#slot-protein-" + m.key).textContent = editSlots[m.key].protein != null ? `${editSlots[m.key].protein} ג׳` : "";
   }
+  updateEditGap();
 }
 
 function openDayEditor(i) {
@@ -686,6 +748,7 @@ for (const m of MEALS) {
     refreshEditProteinTotal();
   });
 }
+$("#edit-protein").addEventListener("input", updateEditGap);
 $("#modal-cancel").addEventListener("click", () => $("#modal").classList.add("hidden"));
 $("#modal").addEventListener("click", (e) => { if (e.target === $("#modal")) $("#modal").classList.add("hidden"); });
 $("#modal-save").addEventListener("click", () => {
@@ -1021,8 +1084,6 @@ $("#pullup-add").addEventListener("click", () => {
 });
 
 /* ---------- ייצוא לוח שבועי ליומן (.ics) ---------- */
-if (!state.settings) state.settings = { workoutTime: "07:00", workoutDur: 45 };
-
 function nextDateOfDay(weekday) { // התאריך הקרוב (כולל היום) של יום נתון
   const d = new Date();
   while (d.getDay() !== weekday) d.setDate(d.getDate() + 1);
@@ -1647,22 +1708,22 @@ function drawProteinChart() {
 
   // רצועת יעד 130–140
   ctx.fillStyle = "rgba(76, 208, 138, 0.12)";
-  ctx.fillRect(pad.l, y(PROTEIN_MAX), W - pad.l - pad.r, y(PROTEIN_MIN) - y(PROTEIN_MAX));
+  ctx.fillRect(pad.l, y(proteinMax()), W - pad.l - pad.r, y(proteinMin()) - y(proteinMax()));
   ctx.strokeStyle = "rgba(76, 208, 138, 0.5)";
   ctx.setLineDash([4, 4]);
-  for (const t of [PROTEIN_MIN, PROTEIN_MAX]) {
+  for (const t of [proteinMin(), proteinMax()]) {
     ctx.beginPath(); ctx.moveTo(pad.l, y(t)); ctx.lineTo(W - pad.r, y(t)); ctx.stroke();
   }
   ctx.setLineDash([]);
   ctx.fillStyle = "#93a1af";
   ctx.font = "10px sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText("130", 4, y(PROTEIN_MIN) + 3);
-  ctx.fillText("140", 4, y(PROTEIN_MAX) + 3);
+  ctx.fillText(String(proteinMin()), 4, y(proteinMin()) + 3);
+  ctx.fillText(String(proteinMax()), 4, y(proteinMax()) + 3);
 
   days.forEach((d, i) => {
     if (d.val == null) return;
-    ctx.fillStyle = d.val >= PROTEIN_MIN ? "#4cd08a" : "#e8b44c";
+    ctx.fillStyle = d.val >= proteinMin() ? "#4cd08a" : "#e8b44c";
     const bx = x(i) - barW / 2;
     ctx.fillRect(bx, y(d.val), barW, H - pad.b - y(d.val));
     if (i % 2 === 0) {

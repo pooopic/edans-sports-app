@@ -161,6 +161,27 @@ body {
 
 .footnote { color: var(--muted); font-size: 0.75rem; line-height: 1.5; padding: 0 4px; }
 
+.target-card { padding: 10px 12px; }
+.target-card .row { justify-content: center; font-size: 0.9rem; }
+.target-input { width: 62px; padding: 6px 4px; }
+.week-summary { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+.week-summary b { color: var(--accent); }
+
+.day-target-status { font-size: 0.76rem; margin-top: 5px; }
+.day-target-status.short { color: var(--warn); }
+.day-target-status.ok { color: var(--accent); }
+
+.edit-gap {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: -4px 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--card2);
+}
+.edit-gap.short { color: var(--warn); }
+.edit-gap.ok { color: var(--accent); }
+
 /* ---- workout ---- */
 .chips { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; }
 .chip {
