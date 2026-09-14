@@ -1423,10 +1423,58 @@ $("#wt-save").addEventListener("click", () => {
   alert(`"${name.trim()}" נשמר — זמין דרך 📂 טען אימון.`);
 });
 
+/* ---------- היסטוריית אימונים — פתיחה ועריכה של כל יום שנרשם ---------- */
+function workoutSummary(dateIso, w) {
+  const parts = [];
+  if (w.run && w.run.km > 0) parts.push(`🏃 ${w.run.km} ק״מ`);
+  if (w.ropeMinutes > 0) parts.push(`🪢 ${w.ropeMinutes} דק׳`);
+  else if (w.ropeSetsDone > 0) parts.push(`🪢 ${w.ropeSetsDone} סטים`);
+  const exCount = w.exList
+    ? w.exList.filter((id) => (w.ex[id] || []).some((s) => s.done || (s.weight || 0) > 0 || (s.reps || 0) > 0 || (s.secs || 0) > 0)).length
+    : 0;
+  if (exCount) parts.push(`🏋️ ${exCount} תרגילים`);
+  return parts.join(" · ") || "ללא רישום";
+}
+
+$("#workout-history").addEventListener("click", () => {
+  const listEl = $("#history-list");
+  listEl.innerHTML = "";
+  const dates = Object.keys(state.workouts).sort().reverse().slice(0, 40);
+  if (!dates.length) {
+    listEl.innerHTML = '<p class="hint">עוד אין אימונים רשומים.</p>';
+  }
+  for (const date of dates) {
+    const w = state.workouts[date];
+    const wd = fromIso(date).getDay();
+    const row = document.createElement("div");
+    row.className = "food-item";
+    row.innerHTML = `<div><div class="food-item-name">${w.done ? "✅" : "▫️"} יום ${DAY_NAMES[wd]} · ${shortDate(date)}</div>
+      <div class="food-item-info">${STRENGTH_DAYS.includes(wd) ? "כוח" : wd === REST_DAY ? "מנוחה" : "ריצה + ליבה"} · ${workoutSummary(date, w)}</div></div>
+      <span style="color: var(--muted);">›</span>`;
+    row.addEventListener("click", () => {
+      currentWorkoutDate = date;
+      $("#history-modal").classList.add("hidden");
+      renderWorkout();
+      window.scrollTo({ top: 0 });
+    });
+    listEl.appendChild(row);
+  }
+  $("#history-modal").classList.remove("hidden");
+});
+$("#history-cancel").addEventListener("click", () => $("#history-modal").classList.add("hidden"));
+
 function renderWorkoutChips() {
   // מהיום ושבוע קדימה — לא מציגים ימים שכבר עברו
   const wrap = $("#workout-day-chips");
   wrap.innerHTML = "";
+  // יום עבר שנבחר דרך ההיסטוריה — מוצג כצ'יפ ראשון כדי שיהיה ברור מה עורכים
+  if (currentWorkoutDate < todayIso()) {
+    const wd = fromIso(currentWorkoutDate).getDay();
+    const past = document.createElement("button");
+    past.className = "chip active";
+    past.textContent = `🕘 ${DAY_SHORT[wd]} ${shortDate(currentWorkoutDate)}`;
+    wrap.appendChild(past);
+  }
   for (let i = 0; i < 7; i++) {
     const dateIso = addDays(todayIso(), i);
     const wd = fromIso(dateIso).getDay();

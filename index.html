@@ -49,6 +49,7 @@
         <h1>לוג אימונים</h1>
         <div class="subtitle">כוח א׳/ג׳/ה׳ · ריצה ב׳/ד׳/ו׳ · שבת מנוחה</div>
       </div>
+      <button id="workout-history" class="iconbtn" title="אימונים קודמים">🕘</button>
     </header>
 
     <div id="workout-day-chips" class="chips"></div>
@@ -364,6 +365,16 @@
       <button id="meal-delete" class="btn ghost danger hidden">🗑️</button>
       <button id="meal-cancel" class="btn ghost">ביטול</button>
     </div>
+  </div>
+</div>
+
+<!-- מודאל היסטוריית אימונים -->
+<div id="history-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>🕘 אימונים קודמים</h2>
+    <p class="hint">לחיצה פותחת את היום לצפייה ועריכה — כולל אימונים שכבר הושלמו.</p>
+    <div id="history-list"></div>
+    <button id="history-cancel" class="btn ghost" style="width:100%; margin-top:10px;">סגור</button>
   </div>
 </div>
 
