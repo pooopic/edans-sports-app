@@ -90,6 +90,14 @@ const EXERCISES = [
 /* תרגילים ישנים שהוסרו מהתוכנית — נשמרים בגרפים כארכיון */
 const LEGACY_EXERCISES = { squat: "סקוואט גובלט (ארכיון)", press: "לחיצה (ארכיון)" };
 const CURL_NAMES = { hammer: "Hammer Curl", regular: "Curl רגיל" };
+/* תרגילי בטן עם דאמבל 5 ק"ג — לימי ריצה+ליבה (ב'/ד'/ו'), אחרי הריצה */
+const CORE_EXERCISES = [
+  { id: "russian",  name: "Russian Twist",       hint: "דאמבל 5 ק״ג · 12–15 לכל צד",                     unit: "חזרות", defReps: 12 },
+  { id: "situp",    name: "Weighted Sit-up",     hint: "דאמבל צמוד לחזה · 12–15",                        unit: "חזרות", defReps: 12 },
+  { id: "sidebend", name: "Dumbbell Side Bend",  hint: "12–15 לכל צד — להחליף יד בין סטים",              unit: "חזרות", defReps: 12 },
+  { id: "deadbug",  name: "Dead Bug עם דאמבל",   hint: "דאמבל מעל החזה · 12–15 לסירוגין רגל-רגל",        unit: "חזרות", defReps: 12 },
+  { id: "suitcase", name: "Suitcase Carry",      hint: "הליכה עם דאמבל ביד אחת · 30–40 שנ׳ לכל יד",      unit: "שניות", defReps: 30 },
+];
 const PULLUP_TYPES = ["מלא", "עם גומייה (35 ק״ג)", "שלילי (ירידה איטית)"];
 
 /* ---------- מאגר מוצרים התחלתי (ערכים תזונתיים סטנדרטיים, ל-100 ג׳) ---------- */
@@ -536,8 +544,18 @@ function ensureWorkout(dateIso) {
     const pullups = prevStrength && prevStrength.pullups && prevStrength.pullups.length
       ? prevStrength.pullups.map((s) => ({ type: s.type, reps: s.reps }))
       : [ { type: PULLUP_TYPES[0], reps: 4 }, { type: PULLUP_TYPES[1], reps: 7 }, { type: PULLUP_TYPES[1], reps: 7 } ];
+    // תרגילי בטן ממשיכים מאימון הריצה האחרון (החזרות שהושגו הופכות לברירת המחדל)
+    const prevRun = lastRunWorkoutBefore(dateIso);
+    const coreEx = {};
+    for (const ex of CORE_EXERCISES) {
+      const prevSets = prevRun && prevRun.coreEx && prevRun.coreEx[ex.id];
+      coreEx[ex.id] = prevSets
+        ? prevSets.map((s) => ({ reps: s.reps, done: false }))
+        : Array.from({ length: 3 }, () => ({ reps: ex.defReps, done: false }));
+    }
     state.workouts[dateIso] = {
       curlVariant: prevStrength && prevStrength.curlVariant === "hammer" ? "regular" : "hammer",
+      coreEx,
       run: { km: 0, minutes: 0 },
       core: prev && prev.core
         ? { plank: [...prev.core.plank], abName: prev.core.abName, abs: [...prev.core.abs] }
@@ -561,6 +579,12 @@ function lastWorkoutBefore(dateIso) {
 function lastStrengthWorkoutBefore(dateIso) {
   const keys = Object.keys(state.workouts)
     .filter((k) => k < dateIso && STRENGTH_DAYS.includes(fromIso(k).getDay()))
+    .sort();
+  return keys.length ? state.workouts[keys[keys.length - 1]] : null;
+}
+function lastRunWorkoutBefore(dateIso) {
+  const keys = Object.keys(state.workouts)
+    .filter((k) => k < dateIso && RUN_DAYS.includes(fromIso(k).getDay()))
     .sort();
   return keys.length ? state.workouts[keys[keys.length - 1]] : null;
 }
@@ -970,6 +994,12 @@ function normalizeWorkout(w) {
   if (!w.run) w.run = { km: 0, minutes: 0 };
   if (!w.core) w.core = { plank: [30, 30, 0], abName: "כפיפות בטן", abs: [15, 15, 0] };
   if (!w.curlVariant) w.curlVariant = "hammer";
+  if (!w.coreEx) w.coreEx = {};
+  for (const ex of CORE_EXERCISES) {
+    if (!w.coreEx[ex.id]) {
+      w.coreEx[ex.id] = Array.from({ length: 3 }, () => ({ reps: ex.defReps, done: false }));
+    }
+  }
   for (const ex of EXERCISES) {
     if (!w.exercises[ex.id]) {
       w.exercises[ex.id] = Array.from({ length: ex.defSets }, () => ({ reps: ex.defReps, weight: ex.defWeight }));
@@ -1012,6 +1042,8 @@ function renderWorkout() {
   if (isStrength) {
     renderExercises(w);
     renderPullups(w);
+  } else {
+    renderCoreEx(w);
   }
   renderCore(w);
 
@@ -1071,6 +1103,76 @@ $("#ab-name").addEventListener("input", () => {
   w.core.abName = $("#ab-name").value;
   save();
 });
+
+/* ---------- תרגילי בטן עם דאמבל (ימי ריצה) ---------- */
+function renderCoreEx(w) {
+  const wrap = $("#core-ex-list");
+  wrap.innerHTML = "";
+  const prevRun = lastRunWorkoutBefore(currentWorkoutDate);
+
+  for (const ex of CORE_EXERCISES) {
+    const sets = w.coreEx[ex.id];
+    const box = document.createElement("div");
+    box.className = "exercise";
+
+    const head = document.createElement("div");
+    head.className = "exercise-head";
+    head.innerHTML = `<div><div class="exercise-name">${ex.name}</div><div class="exercise-equip">${ex.hint}</div></div>`;
+    box.appendChild(head);
+
+    if (prevRun && prevRun.coreEx && prevRun.coreEx[ex.id]) {
+      const doneSets = prevRun.coreEx[ex.id].filter((s) => s.done);
+      if (doneSets.length) {
+        const hintEl = document.createElement("div");
+        hintEl.className = "prev-hint";
+        hintEl.textContent = "אימון קודם: " + doneSets.map((s) => s.reps).join(" · ") + ` ${ex.unit === "שניות" ? "שנ׳" : "חזרות"}`;
+        box.appendChild(hintEl);
+      }
+    }
+
+    const table = document.createElement("table");
+    table.className = "sets-table";
+    table.innerHTML = `<thead><tr><th>סט</th><th>${ex.unit}</th><th>בוצע</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+
+    sets.forEach((s, si) => {
+      const tr = document.createElement("tr");
+      const tdN = document.createElement("td"); tdN.textContent = si + 1;
+      const tdR = document.createElement("td");
+      const inR = document.createElement("input");
+      inR.type = "number"; inR.min = 0; inR.inputMode = "numeric"; inR.value = s.reps;
+      inR.addEventListener("input", () => { s.reps = parseInt(inR.value, 10) || 0; save(); });
+      tdR.appendChild(inR);
+      const tdD = document.createElement("td");
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!s.done;
+      cb.style.width = "22px"; cb.style.height = "22px"; cb.style.accentColor = "var(--accent)";
+      cb.addEventListener("change", () => { s.done = cb.checked; save(); });
+      tdD.appendChild(cb);
+      const tdX = document.createElement("td");
+      const del = document.createElement("button");
+      del.className = "del-set"; del.textContent = "✕";
+      del.addEventListener("click", () => { sets.splice(si, 1); save(); renderCoreEx(w); });
+      tdX.appendChild(del);
+      tr.append(tdN, tdR, tdD, tdX);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    box.appendChild(table);
+
+    const add = document.createElement("button");
+    add.className = "btn small add-set";
+    add.textContent = "+ הוסף סט";
+    add.addEventListener("click", () => {
+      const last = sets[sets.length - 1];
+      sets.push({ reps: last ? last.reps : ex.defReps, done: false });
+      save();
+      renderCoreEx(w);
+    });
+    box.appendChild(add);
+    wrap.appendChild(box);
+  }
+}
 
 /* ---------- טיימר פלאנק: היכון 5 שנ' -> שעון עולה -> עצירה שומרת לסט ---------- */
 const plank = { phase: "idle", interval: null, setIndex: 0, sec: 0, target: 0 };
@@ -1924,6 +2026,8 @@ function renderProgress() {
   drawWeightsChart();
   drawRunChart();
   drawPullupsChart();
+  fillCoreExSelect();
+  drawCoreExChart();
 }
 
 function renderStreak() {
@@ -2101,6 +2205,38 @@ function drawPullupsChart() {
     })
     .slice(-10);
   drawLineChart($("#chart-pullups"), points, "");
+}
+
+let coreExSelectBound = false;
+function fillCoreExSelect() {
+  const sel = $("#chart-coreex-select");
+  const prevValue = sel.value;
+  sel.innerHTML = "";
+  for (const ex of CORE_EXERCISES) {
+    const opt = document.createElement("option");
+    opt.value = ex.id; opt.textContent = ex.name;
+    sel.appendChild(opt);
+  }
+  if (prevValue && [...sel.options].some((o) => o.value === prevValue)) sel.value = prevValue;
+  if (!coreExSelectBound) {
+    sel.addEventListener("change", drawCoreExChart);
+    coreExSelectBound = true;
+  }
+}
+
+function drawCoreExChart() {
+  const exId = $("#chart-coreex-select").value || CORE_EXERCISES[0].id;
+  const ex = CORE_EXERCISES.find((e) => e.id === exId);
+  // נפח = סכום הסטים שסומנו ✓ באימון
+  const points = completedWorkouts()
+    .map(([date, w]) => {
+      const sets = (w.coreEx && w.coreEx[exId]) || [];
+      const total = sets.filter((s) => s.done).reduce((a, s) => a + (s.reps || 0), 0);
+      return { label: shortDate(date), val: total };
+    })
+    .filter((p) => p.val > 0)
+    .slice(-10);
+  drawLineChart($("#chart-coreex"), points, ex && ex.unit === "שניות" ? " שנ׳" : "");
 }
 
 function drawRunChart() {
