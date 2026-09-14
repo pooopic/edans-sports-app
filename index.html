@@ -134,48 +134,23 @@
       </div>
     </div>
 
-    <!-- מתח -->
-    <div id="card-pullups" class="card">
-      <div class="card-head"><h2>💪 מתח</h2></div>
-      <p class="hint"><b>סט 1:</b> מתח מלא — עד כמה שיוצא (רשום את המספר). <b>סטים 2–3:</b> עם גומייה 35 ק״ג, יעד 7 חזרות.<br>
-      <b>כלל התקדמות:</b> כשסט 1 מגיע ל־7 מלאים — סט 2 עובר גם הוא למלא.</p>
-      <div id="pullup-list"></div>
-      <button id="pullup-add" class="btn small">+ הוסף סט</button>
-    </div>
-
-    <!-- משקולות -->
-    <div id="card-weights" class="card">
-      <div class="card-head"><h2>🏋️ משקולות</h2></div>
-      <div id="exercise-list"></div>
-    </div>
-
-    <!-- ליבה -->
-    <div id="card-core" class="card">
-      <div class="card-head"><h2>🧘 ליבה</h2></div>
-      <div class="core-block">
-        <label>פלאנק — שניות לכל סט (▶ מפעיל טיימר ושומר את הזמן)</label>
-        <div class="row gap core-sets">
-          <div class="plank-set"><input id="plank-1" type="number" min="0" inputmode="numeric" placeholder="סט 1"><button class="btn small plank-go" data-set="0">▶</button></div>
-          <div class="plank-set"><input id="plank-2" type="number" min="0" inputmode="numeric" placeholder="סט 2"><button class="btn small plank-go" data-set="1">▶</button></div>
-          <div class="plank-set"><input id="plank-3" type="number" min="0" inputmode="numeric" placeholder="סט 3"><button class="btn small plank-go" data-set="2">▶</button></div>
-        </div>
-        <div id="plank-clock" class="plank-clock hidden">
-          <div id="plank-phase" class="timer-phase"></div>
-          <div id="plank-time" class="timer-clock">5</div>
-          <button id="plank-stop" class="btn primary big-tap" style="width:100%; margin-top:6px;">■ עצור ושמור</button>
+    <!-- תרגילים — רשימה מודולרית מתוך מאגר התרגילים -->
+    <div id="card-exercises" class="card">
+      <div class="card-head">
+        <h2>🏋️ תרגילים</h2>
+        <div class="row gap">
+          <button id="wt-load" class="btn small">📂 טען אימון</button>
+          <button id="wt-save" class="btn small ghost">💾 שמור כאימון</button>
         </div>
       </div>
-      <div class="core-block">
-        <label>תרגיל בטן לבחירה<input id="ab-name" type="text" placeholder="כפיפות בטן / רגליים באוויר..."></label>
-        <label style="margin-top:6px;">חזרות לכל סט</label>
-        <div class="row gap core-sets">
-          <input id="ab-1" type="number" min="0" inputmode="numeric" placeholder="סט 1">
-          <input id="ab-2" type="number" min="0" inputmode="numeric" placeholder="סט 2">
-          <input id="ab-3" type="number" min="0" inputmode="numeric" placeholder="סט 3">
-        </div>
+      <p class="hint">גרור בידית ≡ לשינוי סדר · ✕ מסיר תרגיל מהיום · ▶ בתרגילי שניות מפעיל טיימר</p>
+      <div id="day-ex-list"></div>
+      <button id="day-ex-add" class="btn small">+ הוסף תרגיל</button>
+      <div id="ex-timer" class="plank-clock hidden">
+        <div id="ex-timer-phase" class="timer-phase"></div>
+        <div id="ex-timer-time" class="timer-clock">5</div>
+        <button id="ex-timer-stop" class="btn primary big-tap" style="width:100%; margin-top:6px;">■ עצור ושמור</button>
       </div>
-      <p class="hint" style="margin:10px 0 4px;">🏋️ בטן עם דאמבל 5 ק״ג — סמן ✓ על סט שהושלם (זה מה שנספר בגרף ההתקדמות)</p>
-      <div id="core-ex-list"></div>
     </div>
 
     <!-- טיימר מנוחה -->
@@ -389,6 +364,40 @@
       <button id="meal-delete" class="btn ghost danger hidden">🗑️</button>
       <button id="meal-cancel" class="btn ghost">ביטול</button>
     </div>
+  </div>
+</div>
+
+<!-- מודאל הוספת תרגיל -->
+<div id="ex-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>הוספת תרגיל לאימון</h2>
+    <label>מהמאגר<select id="ex-pick"></select></label>
+    <button id="ex-add-existing" class="btn primary" style="width:100%; margin:8px 0 14px;">הוסף לאימון של היום</button>
+    <div style="border-top:1px solid var(--line); padding-top:10px;">
+      <label>או תרגיל חדש למאגר — שם<input id="ex-new-name" type="text" placeholder="לחיצת רגליים על קיר..."></label>
+      <div class="row gap" style="margin-top:8px;">
+        <label class="grow">סוג רישום
+          <select id="ex-new-mode">
+            <option value="weight">חזרות + משקל</option>
+            <option value="reps">חזרות</option>
+            <option value="seconds">שניות (עם טיימר)</option>
+          </select>
+        </label>
+      </div>
+      <label style="margin-top:8px;">הערת טכניקה (לא חובה)<input id="ex-new-hint" type="text"></label>
+      <button id="ex-add-new" class="btn primary" style="width:100%; margin-top:8px;">צור והוסף לאימון</button>
+    </div>
+    <button id="ex-cancel" class="btn ghost" style="width:100%; margin-top:8px;">ביטול</button>
+  </div>
+</div>
+
+<!-- מודאל מאגר אימונים -->
+<div id="wt-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>📂 מאגר אימונים</h2>
+    <p class="hint">לחיצה על אימון טוענת את רשימת התרגילים שלו ליום הנוכחי.</p>
+    <div id="wt-list"></div>
+    <button id="wt-cancel" class="btn ghost" style="width:100%; margin-top:10px;">סגור</button>
   </div>
 </div>
 

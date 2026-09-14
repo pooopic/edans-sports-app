@@ -258,7 +258,10 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 /* exercise block */
 .exercise { border-top: 1px solid var(--line); padding: 10px 0; }
 .exercise:first-child { border-top: none; }
-.exercise-head { display: flex; align-items: center; justify-content: space-between; }
+.exercise-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.exercise.dragging { opacity: 0.75; }
+.exercise.drop-before { border-top: 3px solid var(--accent); }
+.exercise.drop-after { border-bottom: 3px solid var(--accent); }
 .exercise-name { font-weight: 700; font-size: 0.95rem; }
 .exercise-equip { color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
 .prev-hint { color: var(--muted); font-size: 0.75rem; margin: 4px 0; }

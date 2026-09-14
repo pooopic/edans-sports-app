@@ -79,26 +79,33 @@ const MENU_TEMPLATE = [
   },
 ];
 
-/* ---------- תבנית אימון (מותאמת לציוד הביתי) ---------- */
-const EXERCISES = [
-  { id: "row",     name: "חתירה בעמידה (Bent Over Row)", equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 10, defWeight: 10 },
-  { id: "ohp",     name: "לחיצת כתפיים",                 equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 10, defWeight: 10 },
-  { id: "rdl",     name: "דדליפט רומני",                 equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 12, defWeight: 10 },
-  { id: "rearfly", name: "Rear Delt Fly",                equip: "2× משקולות 5 ק״ג", defSets: 3, defReps: 12, defWeight: 10 },
-  { id: "curl",    name: "Curl",                          equip: "משקולות 5 ק״ג — Hammer/רגיל מתחלפים", defSets: 3, defReps: 10, defWeight: 10 },
+/* ---------- מאגר תרגילים (ניתן להוסיף חדשים מהאפליקציה) ----------
+   mode קובע את שדות הרישום: weight = חזרות+משקל · reps = חזרות+בוצע ·
+   seconds = שניות+טיימר+בוצע · pullup = סוג (מלא/גומייה)+חזרות */
+const DEFAULT_EXLIB = [
+  { id: "pullups",  name: "מתח", hint: "סט 1 מלא עד הכשל · סטים 2–3 גומייה יעד 7 · ב-7 מלאים סט 2 עובר למלא", mode: "pullup" },
+  { id: "row",      name: "חתירה בעמידה (Bent Over Row)", hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10 },
+  { id: "ohp",      name: "לחיצת כתפיים",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10 },
+  { id: "rdl",      name: "דדליפט רומני",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10 },
+  { id: "rearfly",  name: "Rear Delt Fly",                hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10 },
+  { id: "curl",     name: "Curl",                          hint: "משקולות 5 ק״ג — Hammer/רגיל מתחלפים", mode: "weight", defReps: 10, defWeight: 10 },
+  { id: "plank",    name: "פלאנק",                         hint: "▶ מפעיל טיימר: 5 שנ׳ היכון ואז שעון עולה", mode: "seconds", defSecs: 30 },
+  { id: "russian",  name: "Russian Twist",                 hint: "דאמבל 5 ק״ג · 12–15 לכל צד", mode: "reps", defReps: 12 },
+  { id: "situp",    name: "Weighted Sit-up",               hint: "דאמבל צמוד לחזה · 12–15", mode: "reps", defReps: 12 },
+  { id: "sidebend", name: "Dumbbell Side Bend",            hint: "12–15 לכל צד — להחליף יד בין סטים", mode: "reps", defReps: 12 },
+  { id: "deadbug",  name: "Dead Bug עם דאמבל",             hint: "דאמבל מעל החזה · לסירוגין רגל-רגל", mode: "reps", defReps: 12 },
+  { id: "suitcase", name: "Suitcase Carry",                hint: "הליכה עם דאמבל ביד אחת · 30–40 שנ׳ לכל יד", mode: "seconds", defSecs: 30 },
+];
+/* מאגר אימונים — תבניות שאפשר לטעון ליום, לשמור חדשות ולערוך */
+const DEFAULT_WORKOUT_TEMPLATES = [
+  { id: "t-strength", name: "אימון כוח", exerciseIds: ["pullups", "row", "ohp", "rdl", "rearfly", "curl"] },
+  { id: "t-run", name: "ריצה + ליבה", exerciseIds: ["plank", "russian", "situp", "sidebend", "deadbug", "suitcase"] },
 ];
 /* תרגילים ישנים שהוסרו מהתוכנית — נשמרים בגרפים כארכיון */
 const LEGACY_EXERCISES = { squat: "סקוואט גובלט (ארכיון)", press: "לחיצה (ארכיון)" };
 const CURL_NAMES = { hammer: "Hammer Curl", regular: "Curl רגיל" };
-/* תרגילי בטן עם דאמבל 5 ק"ג — לימי ריצה+ליבה (ב'/ד'/ו'), אחרי הריצה */
-const CORE_EXERCISES = [
-  { id: "russian",  name: "Russian Twist",       hint: "דאמבל 5 ק״ג · 12–15 לכל צד",                     unit: "חזרות", defReps: 12 },
-  { id: "situp",    name: "Weighted Sit-up",     hint: "דאמבל צמוד לחזה · 12–15",                        unit: "חזרות", defReps: 12 },
-  { id: "sidebend", name: "Dumbbell Side Bend",  hint: "12–15 לכל צד — להחליף יד בין סטים",              unit: "חזרות", defReps: 12 },
-  { id: "deadbug",  name: "Dead Bug עם דאמבל",   hint: "דאמבל מעל החזה · 12–15 לסירוגין רגל-רגל",        unit: "חזרות", defReps: 12 },
-  { id: "suitcase", name: "Suitcase Carry",      hint: "הליכה עם דאמבל ביד אחת · 30–40 שנ׳ לכל יד",      unit: "שניות", defReps: 30 },
-];
 const PULLUP_TYPES = ["מלא", "עם גומייה (35 ק״ג)", "שלילי (ירידה איטית)"];
+const EX_MODES = { weight: "חזרות + משקל", reps: "חזרות", seconds: "שניות (עם טיימר)", pullup: "מתח (מלא/גומייה)" };
 
 /* ---------- מאגר מוצרים התחלתי (ערכים תזונתיים סטנדרטיים, ל-100 ג׳) ---------- */
 const DEFAULT_PRODUCTS = [
@@ -457,6 +464,36 @@ if (state.seedV < 11) {
   save();
 }
 
+/* שדרוג 12: מסך אימונים מודולרי — מאגר תרגילים, מאגר אימונים,
+   והמרת כל הרישומים הקיימים למבנה המאוחד w.ex + w.exList */
+if (!state.exercises) state.exercises = JSON.parse(JSON.stringify(DEFAULT_EXLIB));
+if (!state.workoutTemplates) state.workoutTemplates = JSON.parse(JSON.stringify(DEFAULT_WORKOUT_TEMPLATES));
+if (state.seedV < 12) {
+  for (const [date, w] of Object.entries(state.workouts || {})) {
+    if (w.ex) continue;
+    w.ex = {};
+    for (const [id, sets] of Object.entries(w.exercises || {})) {
+      w.ex[id] = sets.map((s) => ({ reps: s.reps || 0, weight: s.weight || 0 }));
+    }
+    if (w.pullups && w.pullups.length) {
+      w.ex.pullups = w.pullups.map((s) => ({ variant: s.type || PULLUP_TYPES[0], reps: s.reps || 0 }));
+    }
+    for (const [id, sets] of Object.entries(w.coreEx || {})) {
+      w.ex[id] = sets.map((s) => ({ reps: s.reps || 0, done: !!s.done }));
+    }
+    if (w.core && Array.isArray(w.core.plank)) {
+      const p = w.core.plank.filter((v) => v > 0).map((v) => ({ secs: v, done: true }));
+      if (p.length) w.ex.plank = p;
+    }
+    const wd = fromIso(date).getDay();
+    const tpl = state.workoutTemplates.find((t) => t.id === (STRENGTH_DAYS.includes(wd) ? "t-strength" : "t-run"));
+    w.exList = tpl ? [...tpl.exerciseIds] : Object.keys(w.ex);
+    delete w.exercises; delete w.pullups; delete w.coreEx; delete w.core;
+  }
+  state.seedV = 12;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
@@ -537,45 +574,56 @@ function copyPrevWeek(weekKey) {
 }
 
 /* ---------- אימון ---------- */
+const exLibById = (id) => state.exercises.find((x) => x.id === id);
+const templateById = (id) => state.workoutTemplates.find((t) => t.id === id);
+
+function defaultSets(lib) {
+  if (!lib) return [{ reps: 10 }];
+  if (lib.mode === "weight") return Array.from({ length: 3 }, () => ({ reps: lib.defReps || 10, weight: lib.defWeight || 10 }));
+  if (lib.mode === "reps") return Array.from({ length: 3 }, () => ({ reps: lib.defReps || 12, done: false }));
+  if (lib.mode === "seconds") return Array.from({ length: 3 }, () => ({ secs: lib.defSecs || 30, done: false }));
+  if (lib.mode === "pullup") return [
+    { variant: PULLUP_TYPES[0], reps: 4 }, { variant: PULLUP_TYPES[1], reps: 7 }, { variant: PULLUP_TYPES[1], reps: 7 },
+  ];
+  return [{ reps: 10 }];
+}
+
+/* המשכיות פר-תרגיל: הסטים האחרונים של אותו תרגיל, מכל אימון קודם שהוא הופיע בו */
+function lastSetsFor(exId, beforeIso) {
+  const keys = Object.keys(state.workouts).filter((k) => k < beforeIso).sort().reverse();
+  for (const k of keys) {
+    const w = state.workouts[k];
+    if (w.ex && w.ex[exId] && w.ex[exId].length) return w.ex[exId];
+  }
+  return null;
+}
+function freshSetsFor(exId, dateIso) {
+  const prev = lastSetsFor(exId, dateIso);
+  if (prev) return prev.map((s) => ({ ...s, done: false }));
+  return defaultSets(exLibById(exId));
+}
+function dayTemplate(dateIso) {
+  const wd = fromIso(dateIso).getDay();
+  return templateById(STRENGTH_DAYS.includes(wd) ? "t-strength" : "t-run") || state.workoutTemplates[0];
+}
+
 function ensureWorkout(dateIso) {
   if (!state.workouts[dateIso]) {
     const prev = lastWorkoutBefore(dateIso);
-    // משקולות, מתח ו-Curl ממשיכים מאימון הכוח האחרון — לא מימי ריצה
     const prevStrength = lastStrengthWorkoutBefore(dateIso);
-    const exercises = {};
-    for (const ex of EXERCISES) {
-      const prevSets = prevStrength && prevStrength.exercises[ex.id] && prevStrength.exercises[ex.id].length
-        ? prevStrength.exercises[ex.id]
-        : null;
-      exercises[ex.id] = prevSets
-        ? prevSets.map((s) => ({ reps: s.reps, weight: s.weight }))
-        : Array.from({ length: ex.defSets }, () => ({ reps: ex.defReps, weight: ex.defWeight }));
-    }
-    const pullups = prevStrength && prevStrength.pullups && prevStrength.pullups.length
-      ? prevStrength.pullups.map((s) => ({ type: s.type, reps: s.reps }))
-      : [ { type: PULLUP_TYPES[0], reps: 4 }, { type: PULLUP_TYPES[1], reps: 7 }, { type: PULLUP_TYPES[1], reps: 7 } ];
-    // תרגילי בטן ממשיכים מאימון הריצה האחרון (החזרות שהושגו הופכות לברירת המחדל)
-    const prevRun = lastRunWorkoutBefore(dateIso);
-    const coreEx = {};
-    for (const ex of CORE_EXERCISES) {
-      const prevSets = prevRun && prevRun.coreEx && prevRun.coreEx[ex.id];
-      coreEx[ex.id] = prevSets
-        ? prevSets.map((s) => ({ reps: s.reps, done: false }))
-        : Array.from({ length: 3 }, () => ({ reps: ex.defReps, done: false }));
-    }
+    const tpl = dayTemplate(dateIso);
+    const exList = tpl ? [...tpl.exerciseIds] : [];
+    const ex = {};
+    for (const id of exList) ex[id] = freshSetsFor(id, dateIso);
     state.workouts[dateIso] = {
       curlVariant: prevStrength && prevStrength.curlVariant === "hammer" ? "regular" : "hammer",
-      coreEx,
+      ex, exList,
       run: { km: 0, minutes: 0 },
-      core: prev && prev.core
-        ? { plank: [...prev.core.plank], abName: prev.core.abName, abs: [...prev.core.abs] }
-        : { plank: [30, 30, 0], abName: "כפיפות בטן", abs: [15, 15, 0] },
       ropeMode: prev ? (prev.ropeMode || "count") : "count",
       ropeMinutes: 0, ropeRounds: 10,
       ropeJumpsPerSet: prev ? (prev.ropeJumpsPerSet || 50) : 50,
       ropeTargetSets: prev ? (prev.ropeTargetSets || 6) : 6,
       ropeSetsDone: 0,
-      exercises, pullups,
       done: false,
     };
     save();
@@ -825,12 +873,13 @@ function refreshEditTotals() {
 /* גרירה לשינוי סדר — עובד גם במגע (pointer events + touch-action:none על הידית).
    לא מזיזים את האלמנט בזמן הגרירה (זה מנתק את ה-pointer capture) — רק מסמנים
    קו יעד, ומבצעים את הסידור מחדש בשחרור. */
-function enableDrag(handle, block, wrap) {
+function enableDrag(handle, block, wrap, onDrop) {
   handle.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
     block.classList.add("dragging");
     let targetIndex = null;
+    const idOf = (b) => b.dataset.itemId || b.dataset.exId;
     const clearMarks = () =>
       [...wrap.children].forEach((b) => b.classList.remove("drop-before", "drop-after"));
     const move = (ev) => {
@@ -848,14 +897,15 @@ function enableDrag(handle, block, wrap) {
       handle.removeEventListener("pointermove", move);
       clearMarks();
       block.classList.remove("dragging");
-      if (targetIndex != null) {
-        const fromIdx = editingItems.findIndex((x) => x.id === block.dataset.itemId);
-        let to = targetIndex;
-        const [moved] = editingItems.splice(fromIdx, 1);
-        if (to > fromIdx) to--;
-        editingItems.splice(to, 0, moved);
-        renderEditorItems();
-      }
+      if (targetIndex == null) return;
+      const list = [...wrap.children];
+      const ids = list.map(idOf);
+      const fromIdx = list.indexOf(block);
+      let to = targetIndex;
+      const [moved] = ids.splice(fromIdx, 1);
+      if (to > fromIdx) to--;
+      ids.splice(to, 0, moved);
+      onDrop(ids);
     };
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", finish, { once: true });
@@ -961,7 +1011,10 @@ function renderEditorItems() {
     });
 
     block.append(head, ta, pickRow, gramsRow);
-    enableDrag(handle, block, wrap);
+    enableDrag(handle, block, wrap, (orderIds) => {
+      editingItems.sort((a, b) => orderIds.indexOf(a.id) - orderIds.indexOf(b.id));
+      renderEditorItems();
+    });
     wrap.appendChild(block);
   });
   refreshEditTotals();
@@ -999,28 +1052,24 @@ $("#modal-save").addEventListener("click", () => {
 
 /* ============================ מסך אימונים ============================ */
 
-function normalizeWorkout(w) {
-  // אימונים שנשמרו בגרסאות קודמות — משלימים שדות חדשים
+function normalizeWorkout(w, dateIso) {
   if (!w.run) w.run = { km: 0, minutes: 0 };
-  if (!w.core) w.core = { plank: [30, 30, 0], abName: "כפיפות בטן", abs: [15, 15, 0] };
   if (!w.curlVariant) w.curlVariant = "hammer";
-  if (!w.coreEx) w.coreEx = {};
-  for (const ex of CORE_EXERCISES) {
-    if (!w.coreEx[ex.id]) {
-      w.coreEx[ex.id] = Array.from({ length: 3 }, () => ({ reps: ex.defReps, done: false }));
-    }
+  if (!w.ex) w.ex = {};
+  if (!w.exList) {
+    const tpl = dayTemplate(dateIso);
+    w.exList = tpl ? [...tpl.exerciseIds] : Object.keys(w.ex);
   }
-  for (const ex of EXERCISES) {
-    if (!w.exercises[ex.id]) {
-      w.exercises[ex.id] = Array.from({ length: ex.defSets }, () => ({ reps: ex.defReps, weight: ex.defWeight }));
-    }
-  }
+  for (const id of w.exList) if (!w.ex[id]) w.ex[id] = defaultSets(exLibById(id));
   return w;
+}
+function getWorkout(dateIso) {
+  return normalizeWorkout(ensureWorkout(dateIso), dateIso);
 }
 
 function renderWorkout() {
   renderWorkoutChips();
-  plankReset(); // מעבר יום לא משאיר טיימר פלאנק רץ שיישמר ליום הלא נכון
+  exTimerReset(); // מעבר יום לא משאיר טיימר רץ שיישמר ליום הלא נכון
   const wd = fromIso(currentWorkoutDate).getDay();
   const isRest = wd === REST_DAY;
   const isStrength = STRENGTH_DAYS.includes(wd);
@@ -1029,9 +1078,7 @@ function renderWorkout() {
   $("#card-rest").classList.toggle("hidden", !isRest);
   $("#card-run").classList.toggle("hidden", isRest || isStrength);
   $("#card-rope").classList.toggle("hidden", isRest);
-  $("#card-pullups").classList.toggle("hidden", isRest || !isStrength);
-  $("#card-weights").classList.toggle("hidden", isRest || !isStrength);
-  $("#card-core").classList.toggle("hidden", isRest || isStrength);
+  $("#card-exercises").classList.toggle("hidden", isRest);
   $("#card-timer").classList.toggle("hidden", isRest);
   $("#btn-finish-workout").classList.toggle("hidden", isRest);
 
@@ -1045,17 +1092,11 @@ function renderWorkout() {
     : "🏃 ריצה (או חבל אם לא רצת) + ליבה";
   $("#rope-role").textContent = isStrength ? "· חימום 5–8 דק׳" : "· אם לא רצת";
 
-  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  const w = getWorkout(currentWorkoutDate);
 
   renderRope(w);
   renderRun(w);
-  if (isStrength) {
-    renderExercises(w);
-    renderPullups(w);
-  } else {
-    renderCoreEx(w);
-  }
-  renderCore(w);
+  renderDayExercises(w);
 
   const finishBtn = $("#btn-finish-workout");
   finishBtn.textContent = w.done ? "✔ האימון הושלם (לחץ לביטול)" : "✅ סיים אימון";
@@ -1076,173 +1117,310 @@ function renderRun(w) {
   $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
 }
 $("#run-km").addEventListener("input", () => {
-  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  const w = getWorkout(currentWorkoutDate);
   w.run.km = parseFloat($("#run-km").value) || 0;
   save();
   $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
 });
 $("#run-minutes").addEventListener("input", () => {
-  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+  const w = getWorkout(currentWorkoutDate);
   w.run.minutes = parseFloat($("#run-minutes").value) || 0;
   save();
   $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
 });
 
-/* ---------- ליבה ---------- */
-function renderCore(w) {
-  [1, 2, 3].forEach((n, i) => {
-    $("#plank-" + n).value = w.core.plank[i] || "";
-    $("#ab-" + n).value = w.core.abs[i] || "";
-  });
-  $("#ab-name").value = w.core.abName || "";
+/* ---------- רשימת התרגילים של היום (מודולרית) ---------- */
+function exDisplayName(lib, w) {
+  if (lib.id === "curl") return `${CURL_NAMES[w.curlVariant] || CURL_NAMES.hammer} <span class="meal-badge">היום</span>`;
+  return escapeHtml(lib.name);
 }
-[1, 2, 3].forEach((n, i) => {
-  $("#plank-" + n).addEventListener("input", () => {
-    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
-    w.core.plank[i] = parseInt($("#plank-" + n).value, 10) || 0;
-    save();
-  });
-  $("#ab-" + n).addEventListener("input", () => {
-    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
-    w.core.abs[i] = parseInt($("#ab-" + n).value, 10) || 0;
-    save();
-  });
-});
-$("#ab-name").addEventListener("input", () => {
-  const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
-  w.core.abName = $("#ab-name").value;
-  save();
-});
+function formatPrevSets(lib, sets) {
+  if (lib.mode === "weight") return sets.map((s) => `${s.reps}×${s.weight || 0}ק״ג`).join(" · ");
+  if (lib.mode === "pullup") return sets.map((s) => `${s.reps} ${s.variant === PULLUP_TYPES[0] ? "מלא" : "גומייה"}`).join(" · ");
+  const done = sets.filter((s) => s.done);
+  const use = done.length ? done : sets;
+  return use.map((s) => (lib.mode === "seconds" ? s.secs : s.reps) || 0).join(" · ") + (lib.mode === "seconds" ? " שנ׳" : " חזרות");
+}
 
-/* ---------- תרגילי בטן עם דאמבל (ימי ריצה) ---------- */
-function renderCoreEx(w) {
-  const wrap = $("#core-ex-list");
+function renderDayExercises(w) {
+  const wrap = $("#day-ex-list");
   wrap.innerHTML = "";
-  const prevRun = lastRunWorkoutBefore(currentWorkoutDate);
-
-  for (const ex of CORE_EXERCISES) {
-    const sets = w.coreEx[ex.id];
-    const box = document.createElement("div");
-    box.className = "exercise";
+  for (const exId of w.exList) {
+    const lib = exLibById(exId);
+    if (!lib) continue;
+    const sets = w.ex[exId];
+    const block = document.createElement("div");
+    block.className = "exercise";
+    block.dataset.exId = exId;
 
     const head = document.createElement("div");
     head.className = "exercise-head";
-    head.innerHTML = `<div><div class="exercise-name">${ex.name}</div><div class="exercise-equip">${ex.hint}</div></div>`;
-    box.appendChild(head);
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    const nameDiv = document.createElement("div");
+    nameDiv.className = "grow";
+    nameDiv.innerHTML = `<div class="exercise-name">${exDisplayName(lib, w)}</div><div class="exercise-equip">${escapeHtml(lib.hint || "")}</div>`;
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "del-set";
+    removeBtn.textContent = "✕";
+    removeBtn.title = "הסר מהאימון של היום";
+    removeBtn.addEventListener("click", () => {
+      w.exList = w.exList.filter((id) => id !== exId);
+      save();
+      renderDayExercises(w);
+    });
+    head.append(handle, nameDiv, removeBtn);
+    block.appendChild(head);
 
-    if (prevRun && prevRun.coreEx && prevRun.coreEx[ex.id]) {
-      const doneSets = prevRun.coreEx[ex.id].filter((s) => s.done);
-      if (doneSets.length) {
-        const hintEl = document.createElement("div");
-        hintEl.className = "prev-hint";
-        hintEl.textContent = "אימון קודם: " + doneSets.map((s) => s.reps).join(" · ") + ` ${ex.unit === "שניות" ? "שנ׳" : "חזרות"}`;
-        box.appendChild(hintEl);
-      }
+    const prev = lastSetsFor(exId, currentWorkoutDate);
+    if (prev) {
+      const hintEl = document.createElement("div");
+      hintEl.className = "prev-hint";
+      hintEl.textContent = "אימון קודם: " + formatPrevSets(lib, prev);
+      block.appendChild(hintEl);
     }
 
-    const table = document.createElement("table");
-    table.className = "sets-table";
-    table.innerHTML = `<thead><tr><th>סט</th><th>${ex.unit}</th><th>בוצע</th><th></th></tr></thead>`;
-    const tbody = document.createElement("tbody");
-
-    sets.forEach((s, si) => {
-      const tr = document.createElement("tr");
-      const tdN = document.createElement("td"); tdN.textContent = si + 1;
-      const tdR = document.createElement("td");
-      const inR = document.createElement("input");
-      inR.type = "number"; inR.min = 0; inR.inputMode = "numeric"; inR.value = s.reps;
-      inR.addEventListener("input", () => { s.reps = parseInt(inR.value, 10) || 0; save(); });
-      tdR.appendChild(inR);
-      const tdD = document.createElement("td");
-      const cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = !!s.done;
-      cb.style.width = "22px"; cb.style.height = "22px"; cb.style.accentColor = "var(--accent)";
-      cb.addEventListener("change", () => { s.done = cb.checked; save(); });
-      tdD.appendChild(cb);
-      const tdX = document.createElement("td");
-      const del = document.createElement("button");
-      del.className = "del-set"; del.textContent = "✕";
-      del.addEventListener("click", () => { sets.splice(si, 1); save(); renderCoreEx(w); });
-      tdX.appendChild(del);
-      tr.append(tdN, tdR, tdD, tdX);
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    box.appendChild(table);
+    block.appendChild(buildSetsTable(lib, sets, w));
 
     const add = document.createElement("button");
     add.className = "btn small add-set";
     add.textContent = "+ הוסף סט";
     add.addEventListener("click", () => {
       const last = sets[sets.length - 1];
-      sets.push({ reps: last ? last.reps : ex.defReps, done: false });
+      sets.push(last ? { ...last, done: false } : defaultSets(lib)[0]);
       save();
-      renderCoreEx(w);
+      renderDayExercises(w);
     });
-    box.appendChild(add);
-    wrap.appendChild(box);
+    block.appendChild(add);
+
+    enableDrag(handle, block, wrap, (orderIds) => {
+      w.exList.sort((a, b) => orderIds.indexOf(a) - orderIds.indexOf(b));
+      save();
+      renderDayExercises(w);
+    });
+    wrap.appendChild(block);
   }
 }
 
-/* ---------- טיימר פלאנק: היכון 5 שנ' -> שעון עולה -> עצירה שומרת לסט ---------- */
-const plank = { phase: "idle", interval: null, setIndex: 0, sec: 0, target: 0 };
+function buildSetsTable(lib, sets, w) {
+  const cols = {
+    weight: ["סט", "חזרות", "משקל (ק״ג)", ""],
+    reps: ["סט", "חזרות", "בוצע", ""],
+    seconds: ["סט", "שניות", "", "בוצע", ""],
+    pullup: ["סט", "סוג", "חזרות", ""],
+  }[lib.mode] || ["סט", "חזרות", ""];
+  const table = document.createElement("table");
+  table.className = "sets-table";
+  table.innerHTML = `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead>`;
+  const tbody = document.createElement("tbody");
 
-function plankDraw() {
-  if (plank.phase === "countdown") {
-    $("#plank-phase").textContent = "היכון — לרדת לפלאנק";
-    $("#plank-phase").className = "timer-phase rest";
-    $("#plank-time").textContent = plank.sec;
-  } else if (plank.phase === "work") {
-    const hitTarget = plank.target && plank.sec >= plank.target;
-    $("#plank-phase").textContent = `סט ${plank.setIndex + 1}` +
-      (plank.target ? ` · יעד ${plank.target} שנ׳${hitTarget ? " — עברת! 🎉" : ""}` : "");
-    $("#plank-phase").className = "timer-phase work";
-    $("#plank-time").textContent = `${Math.floor(plank.sec / 60)}:${String(plank.sec % 60).padStart(2, "0")}`;
-  }
-}
+  sets.forEach((s, si) => {
+    const tr = document.createElement("tr");
+    const td = (child) => { const t = document.createElement("td"); if (child) t.appendChild(child); return t; };
+    const numInput = (val, onSet) => {
+      const i = document.createElement("input");
+      i.type = "number"; i.min = 0; i.inputMode = "numeric"; i.value = val || 0;
+      if (lib.mode === "weight") i.step = 0.5;
+      i.addEventListener("input", () => { onSet(parseFloat(i.value) || 0); save(); });
+      return i;
+    };
+    const doneCb = () => {
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!s.done;
+      cb.style.width = "22px"; cb.style.height = "22px"; cb.style.accentColor = "var(--accent)";
+      cb.addEventListener("change", () => { s.done = cb.checked; save(); });
+      return cb;
+    };
+    const delBtn = () => {
+      const b = document.createElement("button");
+      b.className = "del-set"; b.textContent = "✕";
+      b.addEventListener("click", () => { sets.splice(si, 1); save(); renderDayExercises(w); });
+      return b;
+    };
+    const numCell = document.createElement("td");
+    numCell.textContent = si + 1;
+    tr.appendChild(numCell);
 
-function plankReset() {
-  clearInterval(plank.interval);
-  plank.phase = "idle";
-  $("#plank-clock").classList.add("hidden");
-}
-
-$$(".plank-go").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    clearInterval(plank.interval);
-    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
-    plank.setIndex = parseInt(btn.dataset.set, 10);
-    plank.target = w.core.plank[plank.setIndex] || 0;
-    plank.phase = "countdown";
-    plank.sec = 5;
-    $("#plank-clock").classList.remove("hidden");
-    plankDraw();
-    beep(660, 0.1);
-    plank.interval = setInterval(() => {
-      if (plank.phase === "countdown") {
-        plank.sec--;
-        if (plank.sec > 0) beep(660, 0.1);
-        else { plank.phase = "work"; plank.sec = 0; beep(880, 0.3); }
-      } else {
-        plank.sec++;
-        if (plank.target && plank.sec === plank.target) {
-          beep(880, 0.2); setTimeout(() => beep(1100, 0.3), 220);
-        }
+    if (lib.mode === "weight") {
+      tr.append(td(numInput(s.reps, (v) => { s.reps = v; })), td(numInput(s.weight, (v) => { s.weight = v; })), td(delBtn()));
+    } else if (lib.mode === "reps") {
+      tr.append(td(numInput(s.reps, (v) => { s.reps = v; })), td(doneCb()), td(delBtn()));
+    } else if (lib.mode === "seconds") {
+      const secsInput = numInput(s.secs, (v) => { s.secs = v; });
+      const goBtn = document.createElement("button");
+      goBtn.className = "btn small";
+      goBtn.textContent = "▶";
+      goBtn.addEventListener("click", () => exTimerStart(lib, s, secsInput));
+      tr.append(td(secsInput), td(goBtn), td(doneCb()), td(delBtn()));
+    } else if (lib.mode === "pullup") {
+      const sel = document.createElement("select");
+      for (const t of PULLUP_TYPES) {
+        const opt = document.createElement("option");
+        opt.value = t; opt.textContent = t;
+        if (t === s.variant) opt.selected = true;
+        sel.appendChild(opt);
       }
-      plankDraw();
-    }, 1000);
+      sel.addEventListener("change", () => { s.variant = sel.value; save(); });
+      const repsTd = td(numInput(s.reps, (v) => { s.reps = v; }));
+      repsTd.style.width = "70px";
+      tr.append(td(sel), repsTd, td(delBtn()));
+    }
+    tbody.appendChild(tr);
   });
+  table.appendChild(tbody);
+  return table;
+}
+
+/* ---------- טיימר שניות (פלאנק, Suitcase Carry...): היכון 5 שנ' -> שעון עולה ---------- */
+const exTimer = { phase: "idle", interval: null, sec: 0, target: 0, set: null, input: null, name: "" };
+
+function exTimerDraw() {
+  if (exTimer.phase === "countdown") {
+    $("#ex-timer-phase").textContent = `היכון — ${exTimer.name}`;
+    $("#ex-timer-phase").className = "timer-phase rest";
+    $("#ex-timer-time").textContent = exTimer.sec;
+  } else if (exTimer.phase === "work") {
+    const hit = exTimer.target && exTimer.sec >= exTimer.target;
+    $("#ex-timer-phase").textContent = exTimer.name +
+      (exTimer.target ? ` · יעד ${exTimer.target} שנ׳${hit ? " — עברת! 🎉" : ""}` : "");
+    $("#ex-timer-phase").className = "timer-phase work";
+    $("#ex-timer-time").textContent = `${Math.floor(exTimer.sec / 60)}:${String(exTimer.sec % 60).padStart(2, "0")}`;
+  }
+}
+function exTimerReset() {
+  clearInterval(exTimer.interval);
+  exTimer.phase = "idle";
+  $("#ex-timer").classList.add("hidden");
+}
+function exTimerStart(lib, set, input) {
+  clearInterval(exTimer.interval);
+  exTimer.set = set;
+  exTimer.input = input;
+  exTimer.name = lib.name;
+  exTimer.target = set.secs || 0;
+  exTimer.phase = "countdown";
+  exTimer.sec = 5;
+  $("#ex-timer").classList.remove("hidden");
+  exTimerDraw();
+  beep(660, 0.1);
+  exTimer.interval = setInterval(() => {
+    if (exTimer.phase === "countdown") {
+      exTimer.sec--;
+      if (exTimer.sec > 0) beep(660, 0.1);
+      else { exTimer.phase = "work"; exTimer.sec = 0; beep(880, 0.3); }
+    } else {
+      exTimer.sec++;
+      if (exTimer.target && exTimer.sec === exTimer.target) {
+        beep(880, 0.2); setTimeout(() => beep(1100, 0.3), 220);
+      }
+    }
+    exTimerDraw();
+  }, 1000);
+}
+$("#ex-timer-stop").addEventListener("click", () => {
+  if (exTimer.phase === "work" && exTimer.sec > 0 && exTimer.set) {
+    exTimer.set.secs = exTimer.sec;
+    exTimer.set.done = true;
+    save();
+    if (exTimer.input) exTimer.input.value = exTimer.sec;
+    beep(1100, 0.2);
+    renderWorkout();
+  }
+  exTimerReset();
 });
 
-$("#plank-stop").addEventListener("click", () => {
-  if (plank.phase === "work" && plank.sec > 0) {
-    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
-    w.core.plank[plank.setIndex] = plank.sec;
-    save();
-    $("#plank-" + (plank.setIndex + 1)).value = plank.sec;
-    beep(1100, 0.2);
+/* ---------- הוספת תרגיל / טעינת אימון / שמירת אימון ---------- */
+$("#day-ex-add").addEventListener("click", () => {
+  const w = getWorkout(currentWorkoutDate);
+  const sel = $("#ex-pick");
+  sel.innerHTML = "";
+  for (const lib of state.exercises.filter((x) => !w.exList.includes(x.id))) {
+    const opt = document.createElement("option");
+    opt.value = lib.id;
+    opt.textContent = `${lib.name} (${EX_MODES[lib.mode] || lib.mode})`;
+    sel.appendChild(opt);
   }
-  plankReset();
+  $("#ex-new-name").value = "";
+  $("#ex-new-hint").value = "";
+  $("#ex-modal").classList.remove("hidden");
+});
+$("#ex-cancel").addEventListener("click", () => $("#ex-modal").classList.add("hidden"));
+$("#ex-add-existing").addEventListener("click", () => {
+  const id = $("#ex-pick").value;
+  if (!id) { alert("כל התרגילים מהמאגר כבר באימון — צור תרגיל חדש למטה."); return; }
+  const w = getWorkout(currentWorkoutDate);
+  w.exList.push(id);
+  if (!w.ex[id]) w.ex[id] = freshSetsFor(id, currentWorkoutDate);
+  save();
+  $("#ex-modal").classList.add("hidden");
+  renderWorkout();
+});
+$("#ex-add-new").addEventListener("click", () => {
+  const name = $("#ex-new-name").value.trim();
+  if (!name) { alert("חסר שם לתרגיל."); return; }
+  const lib = {
+    id: newId("x"),
+    name,
+    hint: $("#ex-new-hint").value.trim(),
+    mode: $("#ex-new-mode").value,
+    defReps: 12, defWeight: 10, defSecs: 30,
+  };
+  state.exercises.push(lib);
+  const w = getWorkout(currentWorkoutDate);
+  w.exList.push(lib.id);
+  w.ex[lib.id] = defaultSets(lib);
+  save();
+  $("#ex-modal").classList.add("hidden");
+  renderWorkout();
+});
+
+$("#wt-load").addEventListener("click", () => {
+  const listEl = $("#wt-list");
+  listEl.innerHTML = "";
+  for (const tpl of state.workoutTemplates) {
+    const row = document.createElement("div");
+    row.className = "food-item";
+    const names = tpl.exerciseIds.map((id) => (exLibById(id) || { name: "?" }).name).join(", ");
+    const body = document.createElement("div");
+    body.innerHTML = `<div class="food-item-name">${escapeHtml(tpl.name)}</div><div class="food-item-info">${escapeHtml(names)}</div>`;
+    body.style.flex = "1";
+    body.addEventListener("click", () => {
+      if (!confirm(`לטעון את "${tpl.name}"? רשימת התרגילים של היום תוחלף (הנתונים שכבר נרשמו נשמרים).`)) return;
+      const w = getWorkout(currentWorkoutDate);
+      w.exList = [...tpl.exerciseIds];
+      for (const id of w.exList) if (!w.ex[id]) w.ex[id] = freshSetsFor(id, currentWorkoutDate);
+      save();
+      $("#wt-modal").classList.add("hidden");
+      renderWorkout();
+    });
+    row.appendChild(body);
+    if (!tpl.id.startsWith("t-")) { // תבניות שהמשתמש יצר — אפשר למחוק
+      const del = document.createElement("button");
+      del.className = "del-set";
+      del.textContent = "✕";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!confirm(`למחוק את התבנית "${tpl.name}"?`)) return;
+        state.workoutTemplates = state.workoutTemplates.filter((t) => t.id !== tpl.id);
+        save();
+        $("#wt-load").click();
+      });
+      row.appendChild(del);
+    }
+    listEl.appendChild(row);
+  }
+  $("#wt-modal").classList.remove("hidden");
+});
+$("#wt-cancel").addEventListener("click", () => $("#wt-modal").classList.add("hidden"));
+$("#wt-save").addEventListener("click", () => {
+  const w = getWorkout(currentWorkoutDate);
+  if (!w.exList.length) { alert("אין תרגילים באימון של היום."); return; }
+  const name = prompt("שם לאימון החדש (יישמר במאגר האימונים):");
+  if (!name || !name.trim()) return;
+  state.workoutTemplates.push({ id: newId("wt"), name: name.trim(), exerciseIds: [...w.exList] });
+  save();
+  alert(`"${name.trim()}" נשמר — זמין דרך 📂 טען אימון.`);
 });
 
 function renderWorkoutChips() {
@@ -1293,25 +1471,25 @@ function renderRope(w) {
 }
 
 $("#rope-mode-count").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeMode = "count"; save(); renderRope(w);
 });
 $("#rope-mode-time").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeMode = "time"; save(); renderRope(w);
 });
 $("#rope-jumps-per-set").addEventListener("input", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeJumpsPerSet = parseInt($("#rope-jumps-per-set").value, 10) || 50;
   save(); renderRope(w);
 });
 $("#rope-target-sets").addEventListener("input", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeTargetSets = parseInt($("#rope-target-sets").value, 10) || 6;
   save();
 });
 $("#rope-set-done").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeSetsDone = (w.ropeSetsDone || 0) + 1;
   save(); renderRope(w);
   beep(880, 0.15);
@@ -1320,135 +1498,20 @@ $("#rope-set-done").addEventListener("click", () => {
   }
 });
 $("#rope-set-undo").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeSetsDone = Math.max(0, (w.ropeSetsDone || 0) - 1);
   save(); renderRope(w);
 });
 
 $("#rope-minutes").addEventListener("input", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeMinutes = parseFloat($("#rope-minutes").value) || 0;
   save();
 });
 $("#rope-rounds").addEventListener("input", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.ropeRounds = parseInt($("#rope-rounds").value, 10) || 10;
   save();
-});
-
-function renderExercises(w) {
-  const wrap = $("#exercise-list");
-  wrap.innerHTML = "";
-  const prev = lastStrengthWorkoutBefore(currentWorkoutDate);
-
-  for (const ex of EXERCISES) {
-    const sets = w.exercises[ex.id];
-    const box = document.createElement("div");
-    box.className = "exercise";
-
-    const displayName = ex.id === "curl"
-      ? `${CURL_NAMES[w.curlVariant] || CURL_NAMES.hammer} <span class="meal-badge">היום</span>`
-      : ex.name;
-    const head = document.createElement("div");
-    head.className = "exercise-head";
-    head.innerHTML = `<div><div class="exercise-name">${displayName}</div><div class="exercise-equip">${ex.equip}</div></div>`;
-    box.appendChild(head);
-
-    if (prev && prev.exercises[ex.id] && prev.exercises[ex.id].length) {
-      const p = prev.exercises[ex.id];
-      const hint = document.createElement("div");
-      hint.className = "prev-hint";
-      hint.textContent = "אימון קודם: " + p.map((s) => `${s.reps}×${s.weight || 0}ק״ג`).join(" · ");
-      box.appendChild(hint);
-    }
-
-    const table = document.createElement("table");
-    table.className = "sets-table";
-    table.innerHTML = `<thead><tr><th>סט</th><th>חזרות</th><th>משקל (ק״ג)</th><th></th></tr></thead>`;
-    const tbody = document.createElement("tbody");
-
-    sets.forEach((s, si) => {
-      const tr = document.createElement("tr");
-      const tdN = document.createElement("td"); tdN.textContent = si + 1;
-      const tdR = document.createElement("td");
-      const inR = document.createElement("input");
-      inR.type = "number"; inR.min = 0; inR.inputMode = "numeric"; inR.value = s.reps;
-      inR.addEventListener("input", () => { s.reps = parseInt(inR.value, 10) || 0; save(); });
-      tdR.appendChild(inR);
-      const tdW = document.createElement("td");
-      const inW = document.createElement("input");
-      inW.type = "number"; inW.min = 0; inW.step = 0.5; inW.inputMode = "decimal"; inW.value = s.weight;
-      inW.addEventListener("input", () => { s.weight = parseFloat(inW.value) || 0; save(); });
-      tdW.appendChild(inW);
-      const tdD = document.createElement("td");
-      const del = document.createElement("button");
-      del.className = "del-set"; del.textContent = "✕";
-      del.addEventListener("click", () => { sets.splice(si, 1); save(); renderExercises(w); });
-      tdD.appendChild(del);
-      tr.append(tdN, tdR, tdW, tdD);
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    box.appendChild(table);
-
-    const add = document.createElement("button");
-    add.className = "btn small add-set";
-    add.textContent = "+ הוסף סט";
-    add.addEventListener("click", () => {
-      const last = sets[sets.length - 1] || { reps: ex.defReps, weight: ex.defWeight };
-      sets.push({ reps: last.reps, weight: last.weight });
-      save();
-      renderExercises(w);
-    });
-    box.appendChild(add);
-    wrap.appendChild(box);
-  }
-}
-
-function renderPullups(w) {
-  const wrap = $("#pullup-list");
-  wrap.innerHTML = "";
-  const table = document.createElement("table");
-  table.className = "sets-table";
-  table.innerHTML = `<thead><tr><th>סט</th><th>סוג</th><th>חזרות</th><th></th></tr></thead>`;
-  const tbody = document.createElement("tbody");
-
-  w.pullups.forEach((s, si) => {
-    const tr = document.createElement("tr");
-    const tdN = document.createElement("td"); tdN.textContent = si + 1;
-    const tdT = document.createElement("td");
-    const sel = document.createElement("select");
-    for (const t of PULLUP_TYPES) {
-      const opt = document.createElement("option");
-      opt.value = t; opt.textContent = t;
-      if (t === s.type) opt.selected = true;
-      sel.appendChild(opt);
-    }
-    sel.addEventListener("change", () => { s.type = sel.value; save(); });
-    tdT.appendChild(sel);
-    const tdR = document.createElement("td");
-    tdR.style.width = "70px";
-    const inR = document.createElement("input");
-    inR.type = "number"; inR.min = 0; inR.inputMode = "numeric"; inR.value = s.reps;
-    inR.addEventListener("input", () => { s.reps = parseInt(inR.value, 10) || 0; save(); });
-    tdR.appendChild(inR);
-    const tdD = document.createElement("td");
-    const del = document.createElement("button");
-    del.className = "del-set"; del.textContent = "✕";
-    del.addEventListener("click", () => { w.pullups.splice(si, 1); save(); renderPullups(w); });
-    tdD.appendChild(del);
-    tr.append(tdN, tdT, tdR, tdD);
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-}
-$("#pullup-add").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
-  const last = w.pullups[w.pullups.length - 1];
-  w.pullups.push(last ? { type: last.type, reps: last.reps } : { type: PULLUP_TYPES[0], reps: 3 });
-  save();
-  renderPullups(w);
 });
 
 /* ---------- ייצוא לוח שבועי ליומן (.ics) ---------- */
@@ -1507,7 +1570,7 @@ $("#ics-export").addEventListener("click", () => {
 });
 
 $("#btn-finish-workout").addEventListener("click", () => {
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   w.done = !w.done;
   save();
   renderWorkout();
@@ -1573,7 +1636,7 @@ function ropeFinish() {
   clearInterval(rope.interval);
   rope.running = false;
   beep(880, 0.2); setTimeout(() => beep(1100, 0.2), 220); setTimeout(() => beep(1320, 0.4), 440);
-  const w = ensureWorkout(currentWorkoutDate);
+  const w = getWorkout(currentWorkoutDate);
   const minutes = rope.totalRounds; // כל סבב = 30 עבודה + 30 מנוחה = דקה
   w.ropeMinutes = Math.max(w.ropeMinutes || 0, minutes);
   w.ropeRounds = rope.totalRounds;
@@ -2275,7 +2338,7 @@ function fillExerciseSelect() {
   const sel = $("#chart-exercise-select");
   const prevValue = sel.value;
   sel.innerHTML = "";
-  for (const ex of EXERCISES) {
+  for (const ex of state.exercises.filter((x) => x.mode === "weight")) {
     const opt = document.createElement("option");
     opt.value = ex.id; opt.textContent = ex.id === "curl" ? "Curl (שתי הווריאציות)" : ex.name;
     sel.appendChild(opt);
@@ -2283,7 +2346,7 @@ function fillExerciseSelect() {
   // תרגילים ישנים עם היסטוריה — נשארים זמינים בגרף כארכיון
   for (const [id, name] of Object.entries(LEGACY_EXERCISES)) {
     const hasData = completedWorkouts().some(([, w]) =>
-      w.exercises[id] && w.exercises[id].some((s) => (s.weight || 0) > 0));
+      w.ex && w.ex[id] && w.ex[id].some((s) => (s.weight || 0) > 0));
     if (hasData) {
       const opt = document.createElement("option");
       opt.value = id; opt.textContent = name;
@@ -2335,13 +2398,14 @@ function drawLineChart(canvas, points, unit) {
 }
 
 function drawWeightsChart() {
-  const exId = $("#chart-exercise-select").value || EXERCISES[0].id;
+  const exId = $("#chart-exercise-select").value || "row";
   const points = completedWorkouts()
     .map(([date, w]) => {
-      const sets = w.exercises[exId] || [];
+      const sets = (w.ex && w.ex[exId]) || [];
       const maxW = Math.max(0, ...sets.map((s) => s.weight || 0));
       return { label: shortDate(date), val: maxW };
     })
+    .filter((p) => p.val > 0)
     .slice(-10);
   drawLineChart($("#chart-weights"), points, "");
 }
@@ -2349,9 +2413,9 @@ function drawWeightsChart() {
 function drawPullupsChart() {
   // רק סט 1 מלא — מדד ההתקדמות האמיתי לקראת 7 מלאים
   const points = completedWorkouts()
-    .filter(([, w]) => (w.pullups || []).length)
+    .filter(([, w]) => w.ex && w.ex.pullups && w.ex.pullups.length)
     .map(([date, w]) => {
-      const firstFull = w.pullups.find((s) => s.type === PULLUP_TYPES[0]);
+      const firstFull = w.ex.pullups.find((s) => s.variant === PULLUP_TYPES[0]);
       return { label: shortDate(date), val: firstFull ? firstFull.reps || 0 : 0 };
     })
     .slice(-10);
@@ -2363,7 +2427,7 @@ function fillCoreExSelect() {
   const sel = $("#chart-coreex-select");
   const prevValue = sel.value;
   sel.innerHTML = "";
-  for (const ex of CORE_EXERCISES) {
+  for (const ex of state.exercises.filter((x) => x.mode === "reps" || x.mode === "seconds")) {
     const opt = document.createElement("option");
     opt.value = ex.id; opt.textContent = ex.name;
     sel.appendChild(opt);
@@ -2376,18 +2440,20 @@ function fillCoreExSelect() {
 }
 
 function drawCoreExChart() {
-  const exId = $("#chart-coreex-select").value || CORE_EXERCISES[0].id;
-  const ex = CORE_EXERCISES.find((e) => e.id === exId);
+  const exId = $("#chart-coreex-select").value;
+  const ex = exLibById(exId);
+  if (!ex) return;
   // נפח = סכום הסטים שסומנו ✓ באימון
   const points = completedWorkouts()
     .map(([date, w]) => {
-      const sets = (w.coreEx && w.coreEx[exId]) || [];
-      const total = sets.filter((s) => s.done).reduce((a, s) => a + (s.reps || 0), 0);
+      const sets = (w.ex && w.ex[exId]) || [];
+      const total = sets.filter((s) => s.done)
+        .reduce((a, s) => a + ((ex.mode === "seconds" ? s.secs : s.reps) || 0), 0);
       return { label: shortDate(date), val: total };
     })
     .filter((p) => p.val > 0)
     .slice(-10);
-  drawLineChart($("#chart-coreex"), points, ex && ex.unit === "שניות" ? " שנ׳" : "");
+  drawLineChart($("#chart-coreex"), points, ex.mode === "seconds" ? " שנ׳" : "");
 }
 
 function drawRunChart() {
