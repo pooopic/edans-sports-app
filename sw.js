@@ -1,4 +1,4 @@
-const CACHE = "edan-tracker-v19";
+const CACHE = "edan-tracker-v20";
 const ASSETS = [
   "./",
   "./index.html",
@@ -23,11 +23,16 @@ self.addEventListener("activate", (e) => {
   self.clients.claim();
 });
 
-// network-first ל-HTML (כדי לקבל עדכוני גרסה), cache-first לשאר
+// network-first לכל קבצי הליבה (HTML/JS/CSS) — מונע מצב של עיצוב חדש עם קוד ישן.
+// הקאש משמש רק כשאין רשת (אופליין). אייקונים ותמונות נשארים cache-first.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  const isHtml = e.request.mode === "navigate" || e.request.destination === "document";
-  if (isHtml) {
+  const url = new URL(e.request.url);
+  const isCore =
+    e.request.mode === "navigate" ||
+    ["document", "script", "style", "manifest"].includes(e.request.destination) ||
+    /\.(html|js|css|webmanifest)$/.test(url.pathname);
+  if (isCore) {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
