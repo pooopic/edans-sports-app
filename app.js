@@ -2029,7 +2029,148 @@ $("#meal-save").addEventListener("click", () => {
 
 /* ============================ מסך התקדמות ============================ */
 
+/* ---------- מדדי גוף: משקל + מותן ---------- */
+if (!state.body) state.body = []; // [{date, weight, waist}]
+
+function renderBody() {
+  const entries = [...state.body].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const last = entries[entries.length - 1];
+  $("#body-last").textContent = last
+    ? `מדידה אחרונה: ${shortDate(last.date)} — ${last.weight} ק״ג${last.waist ? `, מותן ${last.waist} ס״מ` : ""}`
+    : "עוד אין מדידות — שקילה פעם בשבוע, באותה שעה, מספיקה.";
+  drawBodyChart();
+}
+
+function drawBodyChart() {
+  const metric = $("#body-metric").value || "weight";
+  const points = [...state.body]
+    .sort((a, b) => (a.date < b.date ? -1 : 1))
+    .filter((e) => e[metric] > 0)
+    .map((e) => ({ label: shortDate(e.date), val: e[metric] }))
+    .slice(-12);
+  drawLineChart($("#chart-body"), points, "");
+}
+
+$("#body-save").addEventListener("click", () => {
+  const weight = parseFloat($("#body-weight").value) || 0;
+  const waist = parseFloat($("#body-waist").value) || 0;
+  if (!weight && !waist) { alert("הזן לפחות משקל או מותן."); return; }
+  const today = todayIso();
+  const existing = state.body.find((e) => e.date === today);
+  if (existing) {
+    if (weight) existing.weight = weight;
+    if (waist) existing.waist = waist;
+  } else {
+    state.body.push({ date: today, weight, waist });
+  }
+  save();
+  $("#body-weight").value = "";
+  $("#body-waist").value = "";
+  renderBody();
+});
+$("#body-metric").addEventListener("change", drawBodyChart);
+
+/* ---------- תמונות התקדמות (IndexedDB — נשאר במכשיר בלבד) ---------- */
+function photosDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("edan-photos", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("photos", { keyPath: "id" });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function photoTx(mode, fn) {
+  return photosDB().then((db) => new Promise((resolve, reject) => {
+    const tx = db.transaction("photos", mode);
+    const store = tx.objectStore("photos");
+    const result = fn(store);
+    tx.oncomplete = () => resolve(result && result.result !== undefined ? result.result : undefined);
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function listPhotos() { return photoTx("readonly", (s) => s.getAll()); }
+function putPhoto(rec) { return photoTx("readwrite", (s) => s.put(rec)); }
+function removePhoto(id) { return photoTx("readwrite", (s) => s.delete(id)); }
+
+/* כיווץ לפני שמירה — ~1000px JPEG, כדי שהאחסון המקומי לא יתמלא */
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 1000;
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))), "image/jpeg", 0.85);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function renderPhotos() {
+  let photos = [];
+  try { photos = await listPhotos(); } catch (e) { return; }
+  photos.sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const compare = $("#photo-compare");
+  compare.innerHTML = "";
+  compare.classList.toggle("hidden", photos.length < 2);
+  if (photos.length >= 2) {
+    for (const [p, cap] of [[photos[0], "התחלה"], [photos[photos.length - 1], "עכשיו"]]) {
+      const fig = document.createElement("figure");
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(p.blob);
+      const fc = document.createElement("figcaption");
+      fc.textContent = `${cap} · ${shortDate(p.date)}`;
+      fig.append(img, fc);
+      compare.appendChild(fig);
+    }
+  }
+
+  const grid = $("#photo-grid");
+  grid.innerHTML = "";
+  for (const p of [...photos].reverse()) {
+    const cell = document.createElement("div");
+    cell.className = "photo-thumb";
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(p.blob);
+    const date = document.createElement("span");
+    date.className = "photo-date";
+    date.textContent = shortDate(p.date);
+    const del = document.createElement("button");
+    del.className = "photo-del";
+    del.textContent = "✕";
+    del.addEventListener("click", async () => {
+      if (!confirm("למחוק את התמונה? אין שחזור.")) return;
+      await removePhoto(p.id);
+      renderPhotos();
+    });
+    cell.append(img, date, del);
+    grid.appendChild(cell);
+  }
+}
+
+$("#photo-add").addEventListener("click", () => $("#photo-input").click());
+$("#photo-input").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const blob = await compressImage(file);
+    await putPhoto({ id: newId("ph"), date: todayIso(), blob });
+    renderPhotos();
+  } catch (err) {
+    alert("שמירת התמונה נכשלה — נסה שוב.");
+  }
+});
+
 function renderProgress() {
+  renderBody();
+  renderPhotos();
   renderStreak();
   drawProteinChart();
   fillExerciseSelect();

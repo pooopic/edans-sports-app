@@ -266,6 +266,35 @@
     </div>
 
     <div class="card">
+      <div class="card-head"><h2>⚖️ מדדי גוף</h2></div>
+      <div class="row gap">
+        <label class="grow">משקל (ק״ג)<input id="body-weight" type="number" step="0.1" min="0" inputmode="decimal"></label>
+        <label class="grow">מותן (ס״מ)<input id="body-waist" type="number" step="0.5" min="0" inputmode="decimal" placeholder="לא חובה"></label>
+      </div>
+      <button id="body-save" class="btn primary" style="width:100%; margin-top:8px;">שמור מדידה להיום</button>
+      <div id="body-last" class="hint" style="margin-top:8px;"></div>
+      <div class="card-head" style="margin-top:6px;">
+        <h2 style="font-size:0.92rem;">לאורך זמן</h2>
+        <select id="body-metric">
+          <option value="weight">משקל (ק״ג)</option>
+          <option value="waist">מותן (ס״מ)</option>
+        </select>
+      </div>
+      <canvas id="chart-body" height="160"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>📷 תמונות התקדמות</h2>
+        <button id="photo-add" class="btn small">+ תמונה</button>
+      </div>
+      <input id="photo-input" type="file" accept="image/*" class="hidden">
+      <p class="hint">נשמר רק במכשיר שלך — לא עולה לשום מקום. טיפ: פעם בחודש, אותה תאורה, אותה תנוחה.</p>
+      <div id="photo-compare" class="photo-compare hidden"></div>
+      <div id="photo-grid" class="photo-grid"></div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>חלבון יומי מול יעד (14 ימים)</h2></div>
       <canvas id="chart-protein" height="180"></canvas>
     </div>

@@ -288,6 +288,56 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 .streak-label { color: var(--muted); }
 canvas { width: 100%; display: block; }
 
+/* ---- body tracking ---- */
+.photo-compare {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.photo-compare figure {
+  flex: 1;
+  margin: 0;
+  text-align: center;
+}
+.photo-compare img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.photo-compare figcaption { color: var(--muted); font-size: 0.75rem; margin-top: 4px; }
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.photo-thumb { position: relative; }
+.photo-thumb img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.photo-thumb .photo-date {
+  position: absolute;
+  bottom: 4px; right: 4px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 2px 5px;
+  border-radius: 6px;
+}
+.photo-thumb .photo-del {
+  position: absolute;
+  top: 2px; left: 2px;
+  background: rgba(0,0,0,0.55);
+  color: var(--danger);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  padding: 2px 6px;
+}
+
 /* ---- bottom nav ---- */
 .bottomnav {
   position: fixed;
