@@ -2222,24 +2222,47 @@ function compressImage(file) {
   });
 }
 
+const POSE_LABELS = { front: "פרונט", side: "צד" };
+
+function buildCompareRow(title, first, last) {
+  const wrap = document.createElement("div");
+  const t = document.createElement("div");
+  t.className = "compare-title";
+  t.textContent = title;
+  const row = document.createElement("div");
+  row.className = "photo-compare";
+  for (const [p, cap] of [[first, "התחלה"], [last, "עכשיו"]]) {
+    const fig = document.createElement("figure");
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(p.blob);
+    const fc = document.createElement("figcaption");
+    fc.textContent = `${cap} · ${shortDate(p.date)}`;
+    fig.append(img, fc);
+    row.appendChild(fig);
+  }
+  wrap.append(t, row);
+  return wrap;
+}
+
 async function renderPhotos() {
   let photos = [];
   try { photos = await listPhotos(); } catch (e) { return; }
   photos.sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  const compare = $("#photo-compare");
-  compare.innerHTML = "";
-  compare.classList.toggle("hidden", photos.length < 2);
-  if (photos.length >= 2) {
-    for (const [p, cap] of [[photos[0], "התחלה"], [photos[photos.length - 1], "עכשיו"]]) {
-      const fig = document.createElement("figure");
-      const img = document.createElement("img");
-      img.src = URL.createObjectURL(p.blob);
-      const fc = document.createElement("figcaption");
-      fc.textContent = `${cap} · ${shortDate(p.date)}`;
-      fig.append(img, fc);
-      compare.appendChild(fig);
+  // השוואות נפרדות לכל תנוחה — פרונט מול פרונט, צד מול צד
+  const compares = $("#photo-compares");
+  compares.innerHTML = "";
+  let anyPair = false;
+  for (const pose of ["front", "side"]) {
+    const list = photos.filter((p) => p.pose === pose);
+    if (list.length >= 2 && list[0].date !== list[list.length - 1].date) {
+      compares.appendChild(buildCompareRow(POSE_LABELS[pose], list[0], list[list.length - 1]));
+      anyPair = true;
     }
+  }
+  // אין זוגות מתויגים — נופלים להשוואה כללית ראשון/אחרון
+  if (!anyPair && photos.length >= 2 && photos[0].date !== photos[photos.length - 1].date) {
+    compares.appendChild(buildCompareRow("השוואה", photos[0], photos[photos.length - 1]));
   }
 
   const grid = $("#photo-grid");
@@ -2252,6 +2275,15 @@ async function renderPhotos() {
     const date = document.createElement("span");
     date.className = "photo-date";
     date.textContent = shortDate(p.date);
+    const pose = document.createElement("button");
+    pose.className = "photo-pose" + (p.pose ? "" : " untagged");
+    pose.textContent = p.pose ? POSE_LABELS[p.pose] : "תייג";
+    pose.title = "החלף פרונט/צד";
+    pose.addEventListener("click", async () => {
+      p.pose = p.pose === "front" ? "side" : "front";
+      await putPhoto(p);
+      renderPhotos();
+    });
     const del = document.createElement("button");
     del.className = "photo-del";
     del.textContent = "✕";
@@ -2260,23 +2292,60 @@ async function renderPhotos() {
       await removePhoto(p.id);
       renderPhotos();
     });
-    cell.append(img, date, del);
+    cell.append(img, date, pose, del);
     grid.appendChild(cell);
   }
 }
 
-$("#photo-add").addEventListener("click", () => $("#photo-input").click());
+let pendingPose = "front";
+$$(".photo-add").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    pendingPose = btn.dataset.pose;
+    $("#photo-input").click();
+  });
+});
 $("#photo-input").addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0];
   e.target.value = "";
   if (!file) return;
   try {
     const blob = await compressImage(file);
-    await putPhoto({ id: newId("ph"), date: todayIso(), blob });
+    await putPhoto({ id: newId("ph"), date: todayIso(), blob, pose: pendingPose });
     renderPhotos();
   } catch (err) {
     alert("שמירת התמונה נכשלה — נסה שוב.");
   }
+});
+
+/* תזכורות מדידה ליומן: שקילה שבועית (ראשון) + תמונות חודשיות (ראשון הראשון בחודש) */
+$("#measure-ics").addEventListener("click", () => {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const alarm = "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:מדידה\r\nTRIGGER:PT0M\r\nEND:VALARM\r\n";
+  const ev = (uid, summary, desc, dtstart, rrule) =>
+    "BEGIN:VEVENT\r\n" +
+    `UID:${uid}@edans-sports-app\r\nDTSTAMP:${stamp}\r\n` +
+    `DTSTART;TZID=Asia/Jerusalem:${dtstart}\r\nDURATION:PT10M\r\n` +
+    `RRULE:${rrule}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${desc}\r\n` + alarm + "END:VEVENT\r\n";
+  const nextSunday = nextDateOfDay(0);
+  const ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//edans-sports-app//HE\r\n" +
+    "BEGIN:VTIMEZONE\r\nTZID:Asia/Jerusalem\r\n" +
+    "BEGIN:DAYLIGHT\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0300\r\nTZNAME:IDT\r\nDTSTART:19700327T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1FR\r\nEND:DAYLIGHT\r\n" +
+    "BEGIN:STANDARD\r\nTZOFFSETFROM:+0300\r\nTZOFFSETTO:+0200\r\nTZNAME:IST\r\nDTSTART:19701025T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\n" +
+    "END:VTIMEZONE\r\n" +
+    ev("measure-weekly", "⚖️ מדידה: משקל + מותן",
+      "בבוקר, אחרי שירותים, לפני אוכל. לרשום באפליקציה — מסך התקדמות",
+      icsDate(nextSunday, "06:50"), "FREQ=WEEKLY;BYDAY=SU") +
+    ev("measure-photos", "📷 תמונות התקדמות — פרונט + צד",
+      "אותה תאורה, אותה תנוחה, אותו מקום. לשמור באפליקציה",
+      icsDate(nextSunday, "06:45"), "FREQ=MONTHLY;BYDAY=1SU") +
+    "END:VCALENDAR\r\n";
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edan-measurements.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 });
 
 function renderProgress() {

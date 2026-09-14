@@ -262,12 +262,16 @@
     <div class="card">
       <div class="card-head">
         <h2>📷 תמונות התקדמות</h2>
-        <button id="photo-add" class="btn small">+ תמונה</button>
+        <div class="row gap">
+          <button class="btn small photo-add" data-pose="front">+ פרונט</button>
+          <button class="btn small photo-add" data-pose="side">+ צד</button>
+        </div>
       </div>
       <input id="photo-input" type="file" accept="image/*" class="hidden">
-      <p class="hint">נשמר רק במכשיר שלך — לא עולה לשום מקום. טיפ: פעם בחודש, אותה תאורה, אותה תנוחה.</p>
-      <div id="photo-compare" class="photo-compare hidden"></div>
+      <p class="hint">בכל תאריך: פרונט + צד. נשמר רק במכשיר שלך. לחיצה על תגית התנוחה בתמונה מחליפה פרונט/צד.</p>
+      <div id="photo-compares"></div>
       <div id="photo-grid" class="photo-grid"></div>
+      <button id="measure-ics" class="btn small" style="width:100%; margin-top:10px;">📅 ייצא תזכורות מדידה ליומן (.ics)</button>
     </div>
 
     <div class="card">
