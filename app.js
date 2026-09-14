@@ -980,6 +980,7 @@ function normalizeWorkout(w) {
 
 function renderWorkout() {
   renderWorkoutChips();
+  plankReset(); // מעבר יום לא משאיר טיימר פלאנק רץ שיישמר ליום הלא נכון
   const wd = fromIso(currentWorkoutDate).getDay();
   const isRest = wd === REST_DAY;
   const isStrength = STRENGTH_DAYS.includes(wd);
@@ -1069,6 +1070,67 @@ $("#ab-name").addEventListener("input", () => {
   const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
   w.core.abName = $("#ab-name").value;
   save();
+});
+
+/* ---------- טיימר פלאנק: היכון 5 שנ' -> שעון עולה -> עצירה שומרת לסט ---------- */
+const plank = { phase: "idle", interval: null, setIndex: 0, sec: 0, target: 0 };
+
+function plankDraw() {
+  if (plank.phase === "countdown") {
+    $("#plank-phase").textContent = "היכון — לרדת לפלאנק";
+    $("#plank-phase").className = "timer-phase rest";
+    $("#plank-time").textContent = plank.sec;
+  } else if (plank.phase === "work") {
+    const hitTarget = plank.target && plank.sec >= plank.target;
+    $("#plank-phase").textContent = `סט ${plank.setIndex + 1}` +
+      (plank.target ? ` · יעד ${plank.target} שנ׳${hitTarget ? " — עברת! 🎉" : ""}` : "");
+    $("#plank-phase").className = "timer-phase work";
+    $("#plank-time").textContent = `${Math.floor(plank.sec / 60)}:${String(plank.sec % 60).padStart(2, "0")}`;
+  }
+}
+
+function plankReset() {
+  clearInterval(plank.interval);
+  plank.phase = "idle";
+  $("#plank-clock").classList.add("hidden");
+}
+
+$$(".plank-go").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    clearInterval(plank.interval);
+    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+    plank.setIndex = parseInt(btn.dataset.set, 10);
+    plank.target = w.core.plank[plank.setIndex] || 0;
+    plank.phase = "countdown";
+    plank.sec = 5;
+    $("#plank-clock").classList.remove("hidden");
+    plankDraw();
+    beep(660, 0.1);
+    plank.interval = setInterval(() => {
+      if (plank.phase === "countdown") {
+        plank.sec--;
+        if (plank.sec > 0) beep(660, 0.1);
+        else { plank.phase = "work"; plank.sec = 0; beep(880, 0.3); }
+      } else {
+        plank.sec++;
+        if (plank.target && plank.sec === plank.target) {
+          beep(880, 0.2); setTimeout(() => beep(1100, 0.3), 220);
+        }
+      }
+      plankDraw();
+    }, 1000);
+  });
+});
+
+$("#plank-stop").addEventListener("click", () => {
+  if (plank.phase === "work" && plank.sec > 0) {
+    const w = normalizeWorkout(ensureWorkout(currentWorkoutDate));
+    w.core.plank[plank.setIndex] = plank.sec;
+    save();
+    $("#plank-" + (plank.setIndex + 1)).value = plank.sec;
+    beep(1100, 0.2);
+  }
+  plankReset();
 });
 
 function renderWorkoutChips() {

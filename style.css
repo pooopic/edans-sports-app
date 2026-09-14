@@ -275,6 +275,9 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 .run-pace { font-size: 1.2rem; font-weight: 800; color: var(--accent); padding-top: 6px; }
 .core-block { margin-bottom: 10px; }
 .core-sets input { text-align: center; }
+.plank-set { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.plank-set .plank-go { padding: 6px; }
+.plank-clock { text-align: center; margin-top: 10px; padding: 10px; background: var(--card2); border-radius: 10px; }
 .chip.restday { opacity: 0.5; }
 .rest-clock { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 74px; text-align: center; }
 .rest-clock.running { color: var(--warn); }

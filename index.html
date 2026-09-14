@@ -153,11 +153,16 @@
     <div id="card-core" class="card">
       <div class="card-head"><h2>🧘 ליבה</h2></div>
       <div class="core-block">
-        <label>פלאנק — שניות לכל סט</label>
+        <label>פלאנק — שניות לכל סט (▶ מפעיל טיימר ושומר את הזמן)</label>
         <div class="row gap core-sets">
-          <input id="plank-1" type="number" min="0" inputmode="numeric" placeholder="סט 1">
-          <input id="plank-2" type="number" min="0" inputmode="numeric" placeholder="סט 2">
-          <input id="plank-3" type="number" min="0" inputmode="numeric" placeholder="סט 3">
+          <div class="plank-set"><input id="plank-1" type="number" min="0" inputmode="numeric" placeholder="סט 1"><button class="btn small plank-go" data-set="0">▶</button></div>
+          <div class="plank-set"><input id="plank-2" type="number" min="0" inputmode="numeric" placeholder="סט 2"><button class="btn small plank-go" data-set="1">▶</button></div>
+          <div class="plank-set"><input id="plank-3" type="number" min="0" inputmode="numeric" placeholder="סט 3"><button class="btn small plank-go" data-set="2">▶</button></div>
+        </div>
+        <div id="plank-clock" class="plank-clock hidden">
+          <div id="plank-phase" class="timer-phase"></div>
+          <div id="plank-time" class="timer-clock">5</div>
+          <button id="plank-stop" class="btn primary big-tap" style="width:100%; margin-top:6px;">■ עצור ושמור</button>
         </div>
       </div>
       <div class="core-block">
