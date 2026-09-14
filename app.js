@@ -447,6 +447,16 @@ if (state.seedV < 10) {
   save();
 }
 
+/* שדרוג 11: יעד חלבון לפי המטרה שהוגדרה — ריקומפוזיציה + ביצועים (125-140) */
+if (state.seedV < 11) {
+  if (state.settings.proteinMin === 120 && state.settings.proteinMax === 135) {
+    state.settings.proteinMin = 125;
+    state.settings.proteinMax = 140;
+  }
+  state.seedV = 11;
+  save();
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORE_KEY);
