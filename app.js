@@ -188,8 +188,8 @@ const DEFAULT_MEALS = [
   ]},
   { id: "m-cabbage", name: "כרוב ממולא בבשר (מנה ~3 יח׳)", items: [
     { productId: "p-veg", grams: 120 },         // עלי כרוב + עגבניות הרוטב
-    { productId: "p-rice", grams: 120 },
-    { productId: "p-beef", grams: 60 },
+    { productId: "p-beef", grams: 120 },        // גרסת עדן: קילו בשר לבאטץ' — מילוי בשרי
+    { productId: "p-rice", grams: 70 },
     { productId: "p-oil", grams: 10 },
   ]},
   { id: "m-thai", name: "סלט תאילנדי חלבון", items: [
@@ -461,6 +461,44 @@ if (state.seedV < 11) {
     state.settings.proteinMax = 140;
   }
   state.seedV = 11;
+  save();
+}
+
+/* שדרוג 13: כרוב ממולא בגרסה הבשרית של עדן (קילו בשר לבאטץ', פחות אורז) */
+if (state.seedV === 12) {
+  const cab = mealById("m-cabbage");
+  const isDefault = cab && JSON.stringify(cab.items) === JSON.stringify([
+    { productId: "p-veg", grams: 120 }, { productId: "p-rice", grams: 120 },
+    { productId: "p-beef", grams: 60 }, { productId: "p-oil", grams: 10 },
+  ]);
+  if (isDefault) {
+    cab.items = [
+      { productId: "p-veg", grams: 120 }, { productId: "p-beef", grams: 120 },
+      { productId: "p-rice", grams: 70 }, { productId: "p-oil", grams: 10 },
+    ];
+    // ימים עתידיים שמקושרים לכרוב ושטרם נאכלו — מתעדכנים לערך החדש
+    const todayStr = iso(new Date()); // todayIso מוגדר בהמשך הקובץ — לא זמין כאן
+    for (const [wk, week] of Object.entries(state.weeks || {})) {
+      week.days.forEach((day, i) => {
+        const date = addDays(wk, i);
+        if (date < todayStr) return;
+        let changed = false;
+        for (const it of day.items || []) {
+          if (it.mealId === "m-cabbage" && !it.eaten) {
+            const base = mealGrams(cab);
+            const grams = it.grams || base;
+            it.protein = base ? round1((mealProtein(cab) * grams) / base) : mealProtein(cab);
+            changed = true;
+          }
+        }
+        if (changed) {
+          const vals = (day.items || []).map((x) => x.protein).filter((v) => v != null);
+          if (vals.length) day.protein = Math.round(vals.reduce((a, b) => a + b, 0));
+        }
+      });
+    }
+  }
+  state.seedV = 13;
   save();
 }
 
