@@ -1181,6 +1181,7 @@ function formatPrevSets(lib, sets) {
 }
 
 function renderDayExercises(w) {
+  parkExTimer(); // אם הטיימר יושב בתוך בלוק — מחלצים אותו לפני שהרשימה נבנית מחדש
   const wrap = $("#day-ex-list");
   wrap.innerHTML = "";
   for (const exId of w.exList) {
@@ -1326,10 +1327,17 @@ function exTimerDraw() {
     $("#ex-timer-time").textContent = `${Math.floor(exTimer.sec / 60)}:${String(exTimer.sec % 60).padStart(2, "0")}`;
   }
 }
+/* הפאנל חוזר למקום קבוע בכרטיס — כדי שרינדור מחדש של הרשימה לא ימחק אותו */
+function parkExTimer() {
+  const panel = $("#ex-timer");
+  const home = $("#card-exercises");
+  if (panel && home && panel.parentElement !== home) home.appendChild(panel);
+}
 function exTimerReset() {
   clearInterval(exTimer.interval);
   exTimer.phase = "idle";
   $("#ex-timer").classList.add("hidden");
+  parkExTimer();
 }
 function exTimerStart(lib, set, input) {
   clearInterval(exTimer.interval);
@@ -1339,7 +1347,12 @@ function exTimerStart(lib, set, input) {
   exTimer.target = set.secs || 0;
   exTimer.phase = "countdown";
   exTimer.sec = 5;
-  $("#ex-timer").classList.remove("hidden");
+  const panel = $("#ex-timer");
+  // הטיימר מופיע בתוך בלוק התרגיל שלחצת בו — לא בתחתית המסך
+  const block = input.closest(".exercise");
+  if (block) block.appendChild(panel);
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({ block: "center", behavior: "smooth" });
   exTimerDraw();
   beep(660, 0.1);
   exTimer.interval = setInterval(() => {
@@ -1356,6 +1369,7 @@ function exTimerStart(lib, set, input) {
     exTimerDraw();
   }, 1000);
 }
+$("#ex-timer-reset").addEventListener("click", exTimerReset);
 $("#ex-timer-stop").addEventListener("click", () => {
   if (exTimer.phase === "work" && exTimer.sec > 0 && exTimer.set) {
     exTimer.set.secs = exTimer.sec;
