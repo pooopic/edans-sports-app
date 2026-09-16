@@ -131,7 +131,19 @@ const DEFAULT_PRODUCTS = [
   { id: "p-grapeleaves", name: "עלי גפן",         protein100: 4,    cal100: 70 },
   { id: "p-oil",     name: "שמן זית",             protein100: 0,    cal100: 884, unitName: "כף",  unitGrams: 14 },
   { id: "p-milk",    name: "חלב 3%",              protein100: 3.4,  cal100: 59,  unitName: "כוס", unitGrams: 240 },
-  { id: "p-oats",    name: "שיבולת שועל (יבשה)",  protein100: 13.5, cal100: 389, unitName: "חצי כוס", unitGrams: 40 },
+  { id: "p-oats",    name: "שיבולת שועל (יבשה)",  protein100: 13,   cal100: 380, carb100: 66, fat100: 7, fiber100: 10, unitName: "חצי כוס", unitGrams: 40 },
+  /* ערכים מלאים (פחמימה/שומן/סיבים) — שדות אופציונליים בסכמת המוצר */
+  { id: "p-lentilpatty", name: "קציצת עדשים ביתית", protein100: 11.7, cal100: 202, carb100: 27.7, fat100: 5.3, fiber100: 5.3, unitName: "קציצה", unitGrams: 47,
+    note: "אצוות 16.9.26: 700 מ\"ל עדשים מבושלות, 500 ג' קמח חומוס, 4 ביצים, בצל, 3 שיני שום, 2 בטטות, פירורי לחם ותבלינים. אפוי בתנור, יצאו ~39 קציצות." },
+  { id: "p-omelet2", name: "חביתה מ-2 ביצים (עם מעט שמן)", protein100: 10, cal100: 150, carb100: 0.8, fat100: 11.7, unitName: "מנה", unitGrams: 120 },
+  { id: "p-cucumber", name: "מלפפון", protein100: 0.7, cal100: 15, carb100: 3, fiber100: 1, unitName: "יחידה", unitGrams: 100 },
+  { id: "p-tomato", name: "עגבנייה", protein100: 0.8, cal100: 18, carb100: 4.2, fiber100: 1.3, unitName: "יחידה", unitGrams: 120 },
+  { id: "p-creamcheese", name: "גבינת שמנת שום-שמיר נפוליאון", protein100: 6.7, cal100: 233, carb100: 3.3, fat100: 23.3, unitName: "2 כפות", unitGrams: 30 },
+  { id: "p-yogurt3", name: "יוגורט 3%", protein100: 5, cal100: 60, carb100: 4.5, fat100: 3, unitName: "גביע", unitGrams: 200 },
+  { id: "p-espresso", name: "דאבל אספרסו", protein100: 0, cal100: 0, unitName: "מנה", unitGrams: 60 },
+  { id: "p-pita", name: "פיתה רגילה", protein100: 8.9, cal100: 278, carb100: 55.6, fat100: 1.7, fiber100: 2.2, unitName: "פיתה", unitGrams: 90 },
+  { id: "p-hummus-plate", name: "צלחת חומוס משאושה (מסעדה)", protein100: 7.1, cal100: 206, carb100: 14.9, fat100: 13.4, fiber100: 5.7, unitName: "צלחת", unitGrams: 350,
+    note: "אומדן אמצע טווח (650-800 קק\"ל לצלחת, תלוי בשמן זית וטחינה). לא כולל פיתה." },
 ];
 /* כל הארוחות מהתפריט השבועי, מורכבות ממוצרים */
 const DEFAULT_MEALS = [
@@ -179,6 +191,23 @@ const DEFAULT_MEALS = [
     { productId: "p-powder", grams: 30 },
     { productId: "p-milk", grams: 240 },
     { productId: "p-oats", grams: 40 },     // חצי כוס, מושרית בשייק
+  ]},
+  { id: "m-shake-morning", name: "שייק בוקר", items: [
+    { productId: "p-oats", grams: 100 },
+    { productId: "p-powder", grams: 50 },
+    { productId: "p-yogurt3", grams: 200 }, // גביע
+    { productId: "p-espresso", grams: 60 },
+  ]},
+  { id: "m-hummus-lunch", name: "צהריים — חומוס משאושה + פיתה", items: [
+    { productId: "p-hummus-plate", grams: 350 },
+    { productId: "p-pita", grams: 90 },
+  ]},
+  { id: "m-lentil-patties", name: "ערב — קציצות עדשים", items: [
+    { productId: "p-lentilpatty", grams: 188 },  // 4 קציצות
+    { productId: "p-omelet2", grams: 120 },
+    { productId: "p-cucumber", grams: 300 },     // 3 יח'
+    { productId: "p-tomato", grams: 120 },
+    { productId: "p-creamcheese", grams: 30 },
   ]},
   { id: "m-grapeleaves", name: "עלי גפן ממולאים (מנה ~8 יח׳)", items: [
     { productId: "p-rice", grams: 160 },        // המילוי ברובו אורז עגול
@@ -499,6 +528,43 @@ if (state.seedV === 12) {
     }
   }
   state.seedV = 13;
+  save();
+}
+
+/* שדרוג 14: נתוני תזונה מלאים — מוצרים חדשים עם מאקרו, 3 ארוחות, ותיעוד יום 16.9 */
+if (state.seedV === 13) {
+  for (const p of DEFAULT_PRODUCTS) if (!productById(p.id)) state.products.push(JSON.parse(JSON.stringify(p)));
+  for (const m of DEFAULT_MEALS) if (!mealById(m.id)) state.meals.push(JSON.parse(JSON.stringify(m)));
+  // עדכון ערכים למוצרים קיימים — רק אם עוד עומדים על ברירת המחדל הישנה
+  const oats = productById("p-oats");
+  if (oats && oats.protein100 === 13.5 && oats.cal100 === 389) {
+    Object.assign(oats, { protein100: 13, cal100: 380, carb100: 66, fat100: 7, fiber100: 10 });
+  }
+  const powder = productById("p-powder");
+  if (powder && powder.protein100 === 75 && powder.cal100 === 380) {
+    Object.assign(powder, { protein100: 76, cal100: 390, carb100: 8, fat100: 4 });
+  }
+  // תיעוד יום רביעי 16.9.2026 — שלוש הארוחות שנאכלו + סיכום
+  const week = state.weeks && state.weeks["2026-09-13"];
+  if (week && week.days[3]) {
+    const day = week.days[3];
+    const mk = (mealId, label) => {
+      const meal = mealById(mealId);
+      const names = meal.items.map((x) => (productById(x.productId) || { name: "?" }).name).join(", ");
+      return {
+        id: newId("mi"), label, text: `${meal.name} (${names})`,
+        mealId, protein: mealProtein(meal), eaten: true,
+      };
+    };
+    day.items = [
+      mk("m-shake-morning", "בוקר"),
+      mk("m-hummus-lunch", "צהריים"),
+      mk("m-lentil-patties", "ערב"),
+    ];
+    day.protein = Math.round(day.items.reduce((a, i) => a + i.protein, 0));
+    day.notes = "נשארו 2 קציצות במקרר (תוקף 3-4 ימים, לא להקפיא מחדש); ~29 קציצות במקפיא. סה\"כ היום: ~2,362 קק\"ל, 133 ג' חלבון, 250 פחמ', 94.5 שומן, 46.5 סיבים";
+  }
+  state.seedV = 14;
   save();
 }
 
@@ -1982,8 +2048,14 @@ function renderFood() {
     const row = document.createElement("div");
     row.className = "food-item";
     const unit = p.unitName && p.unitGrams ? ` · ${p.unitName} = ${p.unitGrams} ג׳` : "";
-    row.innerHTML = `<div><div class="food-item-name">${escapeHtml(p.name)}</div>
-      <div class="food-item-info">${p.cal100} קק״ל ל־100 ג׳${unit}</div></div>
+    const macros = [
+      p.carb100 != null ? `פחמ׳ ${p.carb100}` : null,
+      p.fat100 != null ? `שומן ${p.fat100}` : null,
+      p.fiber100 != null ? `סיבים ${p.fiber100}` : null,
+    ].filter(Boolean).join(" · ");
+    const noteMark = p.note ? " 📝" : "";
+    row.innerHTML = `<div><div class="food-item-name">${escapeHtml(p.name)}${noteMark}</div>
+      <div class="food-item-info">${p.cal100} קק״ל ל־100 ג׳${unit}${macros ? "<br>" + macros : ""}</div></div>
       <div class="food-item-protein">${p.protein100} ג׳/100</div>`;
     row.addEventListener("click", () => openProductEditor(p.id));
     plist.appendChild(row);
@@ -2038,6 +2110,13 @@ function reviewProduct(p) {
     notes.push({ level: "error", text: `${p.cal100} קק״ל נמוך מדי: חלבון לבדו נותן ${Math.round(p.protein100 * 4)} קק״ל (4 קק״ל לגרם). כנראה טעות באחד המספרים.` });
   if (p.cal100 > 900) notes.push({ level: "warn", text: "מעל 900 קק״ל ל־100 ג׳ — רק שמן טהור מגיע לזה. בדוק את המספר." });
   if (p.unitGrams > 1000) notes.push({ level: "warn", text: "משקל יחידה מעל קילו — בטוח?" });
+  // בדיקת עקביות אנרגטית: קק"ל ≈ 4×חלבון + 4×פחמימה + 9×שומן
+  if (p.carb100 != null || p.fat100 != null) {
+    const expected = 4 * p.protein100 + 4 * (p.carb100 || 0) + 9 * (p.fat100 || 0);
+    if (expected >= 30 && p.cal100 > 0 && Math.abs(expected - p.cal100) / p.cal100 > 0.25) {
+      notes.push({ level: "warn", text: `המאקרו לא מסתדר עם הקלוריות: 4×חלבון + 4×פחמ׳ + 9×שומן = ~${Math.round(expected)} קק״ל, אבל הוזן ${p.cal100}. בדוק את אחד המספרים.` });
+    }
+  }
   if (p.unitName && !p.unitGrams) notes.push({ level: "warn", text: "הגדרת שם יחידה בלי משקל — לא יהיה אפשר לחשב לפי יחידות." });
   if (p.protein100 === 0) notes.push({ level: "info", text: "מוצר בלי חלבון — לגיטימי (ירקות, שמן), רק מוודא שזו הכוונה." });
   if (!notes.some((n) => n.level === "error" || n.level === "warn"))
@@ -2077,6 +2156,10 @@ function openProductEditor(id) {
   $("#prod-name").value = p ? p.name : "";
   $("#prod-protein").value = p ? p.protein100 : "";
   $("#prod-cal").value = p ? p.cal100 : "";
+  $("#prod-carb").value = p && p.carb100 != null ? p.carb100 : "";
+  $("#prod-fat").value = p && p.fat100 != null ? p.fat100 : "";
+  $("#prod-fiber").value = p && p.fiber100 != null ? p.fiber100 : "";
+  $("#prod-note").value = p && p.note ? p.note : "";
   $("#prod-unit-name").value = p && p.unitName ? p.unitName : "";
   $("#prod-unit-grams").value = p && p.unitGrams ? p.unitGrams : "";
   $("#product-delete").classList.toggle("hidden", !p);
@@ -2094,11 +2177,19 @@ $("#product-delete").addEventListener("click", () => {
   renderFood();
 });
 $("#product-save").addEventListener("click", () => {
+  const optNum = (sel) => {
+    const v = $(sel).value.trim();
+    return v === "" ? undefined : parseFloat(v) || 0;
+  };
   const p = {
     id: editingProductId || newId("p"),
     name: $("#prod-name").value.trim(),
     protein100: parseFloat($("#prod-protein").value) || 0,
     cal100: parseFloat($("#prod-cal").value) || 0,
+    carb100: optNum("#prod-carb"),
+    fat100: optNum("#prod-fat"),
+    fiber100: optNum("#prod-fiber"),
+    note: $("#prod-note").value.trim() || undefined,
     unitName: $("#prod-unit-name").value.trim() || undefined,
     unitGrams: parseFloat($("#prod-unit-grams").value) || undefined,
   };
@@ -2159,10 +2250,22 @@ function renderMealItems() {
   });
   updateMealTotals();
 }
+function mealMacro(meal, key) {
+  return round1(meal.items.reduce((a, it) => {
+    const p = productById(it.productId);
+    return a + (p && p[key] != null ? (it.grams * p[key]) / 100 : 0);
+  }, 0));
+}
 function updateMealTotals() {
-  $("#meal-totals").innerHTML = editingMeal.items.length
-    ? `סה״כ: <span>${mealProtein(editingMeal)} ג׳ חלבון</span> · ${mealCal(editingMeal)} קק״ל`
+  if (!editingMeal.items.length) { $("#meal-totals").innerHTML = ""; return; }
+  const carb = mealMacro(editingMeal, "carb100");
+  const fat = mealMacro(editingMeal, "fat100");
+  const fiber = mealMacro(editingMeal, "fiber100");
+  const extra = (carb || fat || fiber)
+    ? `<div class="hint" style="margin-top:2px;">פחמ׳ ${carb} · שומן ${fat} · סיבים ${fiber}</div>`
     : "";
+  $("#meal-totals").innerHTML =
+    `סה״כ: <span>${mealProtein(editingMeal)} ג׳ חלבון</span> · ${mealCal(editingMeal)} קק״ל${extra}`;
 }
 $("#meal-add").addEventListener("click", () => openMealEditor(null));
 $("#meal-cancel").addEventListener("click", () => $("#meal-modal").classList.add("hidden"));

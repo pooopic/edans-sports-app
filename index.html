@@ -348,9 +348,15 @@
       <label class="grow">קלוריות ל־100 ג׳<input id="prod-cal" type="number" min="0" inputmode="numeric"></label>
     </div>
     <div class="row gap">
+      <label class="grow">פחמימה ל־100 ג׳<input id="prod-carb" type="number" min="0" step="0.1" inputmode="decimal" placeholder="—"></label>
+      <label class="grow">שומן ל־100 ג׳<input id="prod-fat" type="number" min="0" step="0.1" inputmode="decimal" placeholder="—"></label>
+      <label class="grow">סיבים<input id="prod-fiber" type="number" min="0" step="0.1" inputmode="decimal" placeholder="—"></label>
+    </div>
+    <div class="row gap">
       <label class="grow">שם יחידה (לא חובה)<input id="prod-unit-name" type="text" placeholder="ביצה / פרוסה / סקופ"></label>
       <label class="grow">משקל יחידה (ג׳)<input id="prod-unit-grams" type="number" min="0" inputmode="numeric"></label>
     </div>
+    <label>הערה (מתכון, מקור, אומדן...)<textarea id="prod-note" rows="2"></textarea></label>
     <div class="row gap">
       <button id="product-save" class="btn primary grow">בדוק ושמור</button>
       <button id="product-delete" class="btn ghost danger hidden">🗑️</button>
