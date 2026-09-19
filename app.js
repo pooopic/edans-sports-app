@@ -83,6 +83,8 @@ const MENU_TEMPLATE = [
    mode קובע את שדות הרישום: weight = חזרות+משקל · reps = חזרות+בוצע ·
    seconds = שניות+טיימר+בוצע · pullup = סוג (מלא/גומייה)+חזרות */
 const DEFAULT_EXLIB = [
+  { id: "runx",     name: "🏃 ריצה", hint: "מרחק וזמן — הקצב מחושב לבד. אפשר לשבץ תוכנית מהבנאי", mode: "run",
+    demoQuery: "proper running form technique", cues: ["צעדים קצרים ותכופים — נחיתה מתחת למרכז הכובד", "כתפיים משוחררות, מבט קדימה", "רוב הריצות קלות (Z2) — הקושי שמור לאינטרוולים"] },
   { id: "pullups",  name: "מתח", hint: "סט 1 מלא עד הכשל · סטים 2–3 גומייה יעד 7 · ב-7 מלאים סט 2 עובר למלא", mode: "pullup",
     demoQuery: "pull up proper form tutorial", cues: ["אחיזה מעט רחבה מהכתפיים", "שכמות למטה ואחורה לפני המשיכה", "סנטר מעל המוט, ירידה איטית בשליטה"] },
   { id: "row",      name: "חתירה בעמידה (Bent Over Row)", hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10,
@@ -656,6 +658,67 @@ if (state.seedV === 17) {
   save();
 }
 
+/* שדרוג 19: ריצה כתרגיל מן המניין (mode "run") — נכנסת לרשימת התרגילים של היום.
+   w.run נשאר כמראה מסוכמת לגרפים, לגאנט ולהיסטוריה. */
+if (state.seedV === 18) {
+  if (Array.isArray(state.exercises) && !state.exercises.some((x) => x.id === "runx")) {
+    const def = DEFAULT_EXLIB.find((d) => d.id === "runx");
+    if (def) state.exercises.unshift(JSON.parse(JSON.stringify(def)));
+  }
+  const tRun = (state.workoutTemplates || []).find((t) => t.id === "t-run");
+  if (tRun && !tRun.exerciseIds.includes("runx")) tRun.exerciseIds.unshift("runx");
+  for (const [date, w] of Object.entries(state.workouts || {})) {
+    const wd = fromIso(date).getDay();
+    const ran = w.run && (w.run.km > 0 || w.run.minutes > 0);
+    if (!Array.isArray(w.exList)) continue;
+    if (ran && !w.exList.includes("runx")) {
+      w.exList.unshift("runx");
+      w.ex.runx = [{ km: w.run.km, minutes: w.run.minutes, done: true }];
+    } else if (RUN_DAYS.includes(wd) && !w.exList.includes("runx")) {
+      w.exList.unshift("runx");
+      w.ex.runx = [{ km: 0, minutes: 0, done: false }];
+    }
+  }
+  state.seedV = 19;
+  save();
+}
+
+/* שדרוג 20: מילוי תוכנית הריצה בגאנט — 12 שבועות, 3 ריצות בשבוע, מקושרות
+   לאימוני הבנאי: ב׳ קלה Z2 · ד׳ איכות (אינטרוולים/טמפו לסירוגין) · ו׳ קלה + ליבה.
+   שבוע המירוץ (העגור 30.10) — טייפר. תאריכים עם צומת קיים לא נדרסים. */
+if (state.seedV === 19) {
+  if (!state.plan) state.plan = { nodes: [] };
+  const base = new Date();
+  base.setDate(base.getDate() - base.getDay()); // ראשון של השבוע הנוכחי
+  const todayStr = iso(new Date());
+  for (let week = 0; week < 12; week++) {
+    for (const dow of [1, 3, 5]) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + week * 7 + dow);
+      const dateIso = iso(d);
+      if (dateIso <= todayStr) continue;
+      if (dateIso === "2026-10-30") continue; // יום מירוץ העגור — אבן הדרך כבר שם
+      if (state.plan.nodes.some((n) => n.date === dateIso && (n.lane === "run" || n.lane === "milestone"))) continue; // לא דורסים צומת קיים או יום מבחן/מירוץ
+      const raceWeek = dateIso >= "2026-10-25" && dateIso <= "2026-10-29";
+      let node;
+      if (raceWeek) {
+        node = { runWorkoutId: "rw-easy", label: dow === 3 ? "טייפר — קלה קצרה" : "טייפר Z2" };
+      } else if (dow === 1) {
+        node = { runWorkoutId: "rw-easy", label: "קלה Z2" };
+      } else if (dow === 3) {
+        node = week % 2 === 0
+          ? { runWorkoutId: "rw-int33", label: "אינטרוולים Z4" }
+          : { runWorkoutId: "rw-tempo", label: "טמפו Z4" };
+      } else {
+        node = { runWorkoutId: "rw-easy", label: "קלה + ליבה" };
+      }
+      state.plan.nodes.push({ id: newId("pl"), date: dateIso, lane: "run", time: "07:00", ...node });
+    }
+  }
+  state.seedV = 20;
+  save();
+}
+
 /* שדרוג 12: מסך אימונים מודולרי — מאגר תרגילים, מאגר אימונים,
    והמרת כל הרישומים הקיימים למבנה המאוחד w.ex + w.exList */
 if (!state.exercises) state.exercises = JSON.parse(JSON.stringify(DEFAULT_EXLIB));
@@ -772,6 +835,7 @@ const templateById = (id) => state.workoutTemplates.find((t) => t.id === id);
 
 function defaultSets(lib) {
   if (!lib) return [{ reps: 10 }];
+  if (lib.mode === "run") return [{ km: 0, minutes: 0, done: false }];
   if (lib.mode === "weight") return Array.from({ length: 3 }, () => ({ reps: lib.defReps || 10, weight: lib.defWeight || 10 }));
   if (lib.mode === "reps") return Array.from({ length: 3 }, () => ({ reps: lib.defReps || 12, done: false }));
   if (lib.mode === "seconds") return Array.from({ length: 3 }, () => ({ secs: lib.defSecs || 30, done: false }));
@@ -1321,18 +1385,10 @@ function renderWorkout() {
 
   if (isRest) {
     $("#workout-day-type").textContent = "😴 מנוחה מלאה";
-    $("#card-run").classList.add("hidden");
-    $("#btn-add-run").classList.add("hidden");
     return;
   }
 
   const w = getWorkout(currentWorkoutDate);
-
-  // ריצה אפשרית בכל יום: בימי ריצה תמיד מוצגת, בשאר הימים נוספת בלחיצה
-  // (או מוצגת אוטומטית אם כבר נרשמה ריצה)
-  const showRun = (!isStrength && !isRestDay) || w.run.km > 0 || w.run.minutes > 0 || !!w.showRun;
-  $("#card-run").classList.toggle("hidden", !showRun);
-  $("#btn-add-run").classList.toggle("hidden", showRun);
 
   $("#workout-day-type").textContent = isRestDay
     ? "🏋️ אימון ספונטני בשבת — נרשם רגיל"
@@ -1342,7 +1398,6 @@ function renderWorkout() {
   $("#rope-role").textContent = isStrength ? "· חימום 5–8 דק׳" : "· אם לא רצת";
 
   renderRope(w);
-  renderRun(w);
   renderDayExercises(w);
   renderRunWorkouts();
 
@@ -1359,35 +1414,12 @@ function paceText(km, minutes) {
   const ss = Math.round((paceMin - mm) * 60);
   return `${mm}:${String(ss).padStart(2, "0")} דק׳/ק״מ`;
 }
-function renderRun(w) {
-  $("#run-km").value = w.run.km || "";
-  $("#run-minutes").value = w.run.minutes || "";
-  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
-}
-$("#btn-add-run").addEventListener("click", () => {
-  const w = getWorkout(currentWorkoutDate);
-  w.showRun = true;
-  save();
-  renderWorkout();
-});
 $("#btn-rest-log").addEventListener("click", () => {
   const w = getWorkout(currentWorkoutDate);
   if (!w.logAnyway && !w.done) { w.exList = []; w.ex = {}; } // יום חופשי מתחיל ריק — מוסיפים רק מה שבאמת בוצע
   w.logAnyway = true;
   save();
   renderWorkout();
-});
-$("#run-km").addEventListener("input", () => {
-  const w = getWorkout(currentWorkoutDate);
-  w.run.km = parseFloat($("#run-km").value) || 0;
-  save();
-  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
-});
-$("#run-minutes").addEventListener("input", () => {
-  const w = getWorkout(currentWorkoutDate);
-  w.run.minutes = parseFloat($("#run-minutes").value) || 0;
-  save();
-  $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
 });
 
 /* ---------- רשימת התרגילים של היום (מודולרית) ---------- */
@@ -1396,6 +1428,7 @@ function exDisplayName(lib, w) {
   return escapeHtml(lib.name);
 }
 function formatPrevSets(lib, sets) {
+  if (lib.mode === "run") return sets.map((s) => `${s.km || 0} ק״מ / ${s.minutes || 0} דק׳`).join(" · ");
   if (lib.mode === "weight") return sets.map((s) => `${s.reps}×${s.weight || 0}ק״ג`).join(" · ");
   if (lib.mode === "pullup") return sets.map((s) => `${s.reps} ${s.variant === PULLUP_TYPES[0] ? "מלא" : "גומייה"}`).join(" · ");
   const done = sets.filter((s) => s.done);
@@ -1426,8 +1459,24 @@ function openDemoModal(lib) {
 }
 $("#demo-cancel").addEventListener("click", () => $("#demo-modal").classList.add("hidden"));
 
+/* w.run הוא סיכום הריצה של היום (לגרפים, לגאנט ולהיסטוריה) — נגזר מסטים של תרגיל הריצה */
+function syncRunMirror(w) {
+  const sets = (w.ex && w.ex.runx) || [];
+  w.run.km = round1(sets.reduce((a, s) => a + (s.km || 0), 0));
+  w.run.minutes = Math.round(sets.reduce((a, s) => a + (s.minutes || 0), 0));
+}
+/* מה מתוכנן לריצה של היום — מהצומת בתכנון או משיבוץ ידני מהבנאי */
+function plannedRunFor(dateIso, w) {
+  if (w.runPlanName) return w.runPlanName;
+  const n = state.plan && state.plan.nodes.find((x) => x.lane === "run" && x.date === dateIso);
+  if (!n) return null;
+  const rw = n.runWorkoutId ? rwkById(n.runWorkoutId) : null;
+  return rw ? rw.name : n.label;
+}
+
 function renderDayExercises(w) {
   parkExTimer(); // אם הטיימר יושב בתוך בלוק — מחלצים אותו לפני שהרשימה נבנית מחדש
+  syncRunMirror(w);
   const wrap = $("#day-ex-list");
   wrap.innerHTML = "";
   for (const exId of w.exList) {
@@ -1463,6 +1512,15 @@ function renderDayExercises(w) {
     head.append(handle, nameDiv, demoBtn, removeBtn);
     block.appendChild(head);
 
+    if (lib.mode === "run") {
+      const plan = plannedRunFor(currentWorkoutDate, w);
+      if (plan) {
+        const planEl = document.createElement("div");
+        planEl.className = "prev-hint";
+        planEl.textContent = "🛠 מתוכנן: " + plan;
+        block.appendChild(planEl);
+      }
+    }
     const prev = lastSetsFor(exId, currentWorkoutDate);
     if (prev) {
       const hintEl = document.createElement("div");
@@ -1499,6 +1557,7 @@ function buildSetsTable(lib, sets, w) {
     reps: ["סט", "חזרות", "בוצע", ""],
     seconds: ["סט", "שניות", "", "בוצע", ""],
     pullup: ["סט", "סוג", "חזרות", ""],
+    run: ["", "ק״מ", "דקות", "קצב", ""],
   }[lib.mode] || ["סט", "חזרות", ""];
   const table = document.createElement("table");
   table.className = "sets-table";
@@ -1555,6 +1614,15 @@ function buildSetsTable(lib, sets, w) {
       const repsTd = td(numInput(s.reps, (v) => { s.reps = v; }));
       repsTd.style.width = "70px";
       tr.append(td(sel), repsTd, td(delBtn()));
+    } else if (lib.mode === "run") {
+      const paceTd = document.createElement("td");
+      paceTd.className = "run-pace-cell";
+      paceTd.textContent = paceText(s.km, s.minutes);
+      const upd = () => { paceTd.textContent = paceText(s.km, s.minutes); syncRunMirror(w); };
+      const kmIn = numInput(s.km, (v) => { s.km = v; upd(); });
+      kmIn.step = 0.1; kmIn.inputMode = "decimal";
+      const minIn = numInput(s.minutes, (v) => { s.minutes = v; upd(); });
+      tr.append(td(kmIn), td(minIn), paceTd, td(delBtn()));
     }
     tbody.appendChild(tr);
   });
@@ -1746,7 +1814,7 @@ function workoutSummary(dateIso, w) {
   if (w.ropeMinutes > 0) parts.push(`🪢 ${w.ropeMinutes} דק׳`);
   else if (w.ropeSetsDone > 0) parts.push(`🪢 ${w.ropeSetsDone} סטים`);
   const exCount = w.exList
-    ? w.exList.filter((id) => (w.ex[id] || []).some((s) => s.done || (s.weight || 0) > 0 || (s.reps || 0) > 0 || (s.secs || 0) > 0)).length
+    ? w.exList.filter((id) => id !== "runx" && (w.ex[id] || []).some((s) => s.done || (s.weight || 0) > 0 || (s.reps || 0) > 0 || (s.secs || 0) > 0)).length
     : 0;
   if (exCount) parts.push(`🏋️ ${exCount} תרגילים`);
   return parts.join(" · ") || "ללא רישום";
@@ -1989,11 +2057,28 @@ function renderRunWorkouts() {
     body.style.flex = "1";
     body.innerHTML = `<div class="food-item-name">${escapeHtml(w.name)}</div><div class="rwk-summary">${escapeHtml(summary)}</div>`;
     body.addEventListener("click", () => openRwkEditor(w.id));
+    const todayBtn = document.createElement("button");
+    todayBtn.className = "btn small ghost";
+    todayBtn.textContent = "➕ ליום";
+    todayBtn.title = "שבץ את האימון הזה ברישום של היום המוצג";
+    todayBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const day = getWorkout(currentWorkoutDate);
+      if (!day.exList.includes("runx")) {
+        day.exList.unshift("runx");
+        if (!day.ex.runx) day.ex.runx = defaultSets(exLibById("runx"));
+      }
+      day.runPlanName = w.name;
+      save();
+      renderWorkout();
+      const blockEl = document.querySelector('#day-ex-list .exercise[data-ex-id="runx"], #day-ex-list .exercise');
+      if (blockEl) blockEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
     const exportBtn = document.createElement("button");
     exportBtn.className = "btn small";
     exportBtn.textContent = "⬇️ FIT";
     exportBtn.addEventListener("click", (e) => { e.stopPropagation(); exportRunFit(w); });
-    row.append(body, exportBtn);
+    row.append(body, todayBtn, exportBtn);
     wrap.appendChild(row);
   }
 }
@@ -2208,6 +2293,62 @@ $("#ics-export").addEventListener("click", () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "edan-workouts.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+
+/* ---------- ייצוא התכנון ליומן גוגל ---------- */
+function gcalUrl(dateIso, time, durMin, title, details) {
+  const d = dateIso.replace(/-/g, "");
+  const t0 = time || state.settings.workoutTime || "07:00";
+  const start = d + "T" + t0.replace(":", "") + "00";
+  const end = d + "T" + addMinutes(t0, durMin || state.settings.workoutDur || 45).replace(":", "") + "00";
+  return "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    "&text=" + encodeURIComponent(title) +
+    "&dates=" + start + "/" + end +
+    "&ctz=Asia/Jerusalem" +
+    "&details=" + encodeURIComponent(details || "מתוך המעקב של עדן");
+}
+$("#plan-gcal").addEventListener("click", () => {
+  const date = $("#plan-date").value;
+  const label = $("#plan-label").value.trim() || "אימון";
+  if (!date) { alert("חסר תאריך."); return; }
+  const laneIcon = { strength: "💪", run: "🏃", food: "🍽️", milestone: "🎯" }[$("#plan-lane").value] || "";
+  window.open(gcalUrl(date, $("#plan-time").value, null, `${laneIcon} ${label}`.trim()), "_blank", "noopener");
+});
+$("#sched-gcal").addEventListener("click", () => {
+  if (!schedDate) return;
+  const wd = fromIso(schedDate).getDay();
+  const tpl = dayTemplate(schedDate);
+  const icon = STRENGTH_DAYS.includes(wd) ? "💪" : "🏃";
+  window.open(gcalUrl(schedDate, null, null, `${icon} אימון: ${tpl ? tpl.name : ""}`), "_blank", "noopener");
+});
+/* כל התוכנית כקובץ .ics — ייבוא חד-פעמי ליומן גוגל (הגדרות ← ייבוא וייצוא) */
+$("#plan-ics").addEventListener("click", () => {
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const dur = state.settings.workoutDur || 45;
+  let body = "";
+  const nodes = (state.plan.nodes || []).filter((n) => n.date >= todayIso()).sort((a, b) => a.date.localeCompare(b.date));
+  for (const n of nodes) {
+    const icon = { strength: "💪", run: "🏃", food: "🍽️", milestone: "🎯" }[n.lane] || "";
+    body += "BEGIN:VEVENT\r\n" +
+      `UID:${n.id}@edans-sports-app\r\n` +
+      `DTSTAMP:${stamp}\r\n`;
+    if (n.lane === "milestone" && !n.time) {
+      body += `DTSTART;VALUE=DATE:${n.date.replace(/-/g, "")}\r\n`;
+    } else {
+      const t = n.time || state.settings.workoutTime || "07:00";
+      body += `DTSTART;TZID=Asia/Jerusalem:${n.date.replace(/-/g, "")}T${t.replace(":", "")}00\r\nDURATION:PT${dur}M\r\n`;
+    }
+    body += `SUMMARY:${icon} ${n.label}\r\nEND:VEVENT\r\n`;
+  }
+  if (!body) { alert("אין צמתים עתידיים בתכנון."); return; }
+  const ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//edans-sports-app//plan//HE\r\n" + body + "END:VCALENDAR\r\n";
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "edan-plan.ics";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -2667,16 +2808,18 @@ let editingPlanNodeId = null;
 function fillPlanSourceSelect(lane, node) {
   const sel = $("#plan-template");
   sel.innerHTML = '<option value="">—</option>';
-  const isFood = lane === "food";
+  const isFood = lane === "food", isRun = lane === "run";
   $("#plan-source-label").textContent = isFood
     ? "ארוחה מהמאגר — תתווסף אוטומטית לתפריט השבועי של אותו יום"
-    : "אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)";
-  const src = isFood ? state.meals : state.workoutTemplates;
+    : isRun
+      ? "אימון ריצה מהבנאי (לא חובה — יוצג בלוג של אותו יום)"
+      : "אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)";
+  const src = isFood ? state.meals : isRun ? (state.runWorkouts || []) : state.workoutTemplates;
   for (const t of src) {
     const opt = document.createElement("option");
     opt.value = t.id;
     opt.textContent = isFood ? `${t.name} (${mealProtein(t)} ג׳ חלבון)` : t.name;
-    if (node && (node.templateId === t.id || node.mealId === t.id)) opt.selected = true;
+    if (node && (node.templateId === t.id || node.mealId === t.id || node.runWorkoutId === t.id)) opt.selected = true;
     sel.appendChild(opt);
   }
 }
@@ -2698,7 +2841,8 @@ $("#plan-lane").addEventListener("change", () => {
 });
 $("#plan-template").addEventListener("change", () => {
   const id = $("#plan-template").value;
-  const src = $("#plan-lane").value === "food" ? mealById(id) : templateById(id);
+  const lane = $("#plan-lane").value;
+  const src = lane === "food" ? mealById(id) : lane === "run" ? rwkById(id) : templateById(id);
   if (src && !$("#plan-label").value.trim()) $("#plan-label").value = src.name;
 });
 $("#plan-cancel").addEventListener("click", () => $("#plan-modal").classList.add("hidden"));
@@ -2726,8 +2870,9 @@ $("#plan-save").addEventListener("click", () => {
   const data = {
     date,
     lane,
-    templateId: lane === "food" ? undefined : srcId,
+    templateId: lane === "food" || lane === "run" ? undefined : srcId,
     mealId: lane === "food" ? srcId : undefined,
+    runWorkoutId: lane === "run" ? srcId : undefined,
     time: $("#plan-time").value || undefined,
     label,
   };

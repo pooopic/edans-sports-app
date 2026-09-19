@@ -70,24 +70,6 @@
 
     <div class="workout-grid">
     <div class="wcol-a">
-    <!-- ריצה -->
-    <div id="card-run" class="card">
-      <div class="card-head"><h2>🏃 ריצה</h2></div>
-      <div class="row gap">
-        <label class="grow">מרחק (ק״מ)
-          <input id="run-km" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0">
-        </label>
-        <label class="grow">זמן (דקות)
-          <input id="run-minutes" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
-        </label>
-        <div class="grow" style="text-align:center;">
-          <span class="meal-label">קצב</span>
-          <div id="run-pace" class="run-pace">—</div>
-        </div>
-      </div>
-    </div>
-    <button id="btn-add-run" class="btn small ghost hidden" style="width:100%; margin-bottom:12px;">+ 🏃 רצתי היום — הוסף ריצה לרישום</button>
-
     <!-- קפיצה בחבל -->
     <div id="card-rope" class="card">
       <div class="card-head">
@@ -213,6 +195,9 @@
         <div class="subtitle">גאנט 12 שבועות · הקש על תא לשיבוץ, על צומת לעריכה</div>
       </div>
     </header>
+    <div class="toolbar" style="justify-content:center;">
+      <button id="plan-ics" class="btn small">📅 ייצא את כל התוכנית ליומן גוגל (.ics)</button>
+    </div>
     <div class="gantt-wrap">
       <div id="gantt"></div>
     </div>
@@ -515,7 +500,8 @@
       <label class="grow">תווית<input id="plan-label" type="text" placeholder="טמפו 15ד / מבחן 5K / סאב-60..."></label>
       <label style="width:110px;">שעה (לא חובה)<input id="plan-time" type="time"></label>
     </div>
-    <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 8px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
+    <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 4px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
+    <button id="plan-gcal" class="btn ghost" style="width:100%; margin:0 0 8px;">📅 הוסף ליומן גוגל</button>
     <div class="row gap">
       <button id="plan-save" class="btn primary grow">שמור</button>
       <button id="plan-delete" class="btn ghost danger hidden">🗑️</button>
@@ -567,6 +553,7 @@
     <div id="sched-insight" class="hint" style="border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-top:12px;"></div>
     <label style="margin-top:10px;">📝 הערה שלך ליום<textarea id="sched-note" rows="2" placeholder="מה חשוב לזכור ביום הזה..."></textarea></label>
     <button id="sched-open-day" class="btn primary" style="width:100%; margin-top:12px;">🏋️ פתח את יום האימון</button>
+    <button id="sched-gcal" class="btn ghost" style="width:100%; margin-top:8px;">📅 הוסף את האימון ליומן גוגל</button>
     <button id="sched-cancel" class="btn ghost" style="width:100%; margin-top:8px;">סגור</button>
   </div>
 </div>

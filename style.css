@@ -274,6 +274,7 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 .add-set { margin-top: 4px; }
 
 .rest-btn { flex: 1; }
+.run-pace-cell { color: var(--accent); font-weight: 700; font-size: 0.82rem; white-space: nowrap; }
 .rope-role { color: var(--muted); font-size: 0.75rem; font-weight: 400; }
 .run-pace { font-size: 1.2rem; font-weight: 800; color: var(--accent); padding-top: 6px; }
 .core-block { margin-bottom: 10px; }
