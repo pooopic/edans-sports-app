@@ -2526,7 +2526,30 @@ const PLAN_LANES = [
   { id: "food", label: "🍽️ ארוחות" },
   { id: "milestone", label: "🎯 יעדים" },
   { id: "body", label: "⚖️ גוף" },
+  { id: "insight", label: "📝 הסבר" },
 ];
+
+/* תקציר יומי לשורת ההסבר בגאנט: מה קורה ביום ואיך זה מקדם את היעד */
+function dayGist(dateIso) {
+  const wd = fromIso(dateIso).getDay();
+  const runNode = state.plan.nodes.find((n) => n.lane === "run" && n.date === dateIso);
+  const label = runNode ? (runNode.label || "") : "";
+  const milestone = state.plan.nodes.find((n) => n.lane === "milestone" && n.date === dateIso);
+  let g;
+  if (/מירוץ/.test(label)) g = "🏁 יום מירוץ — הכל התכנס לכאן";
+  else if (/מבחן/.test(label)) g = "מדידת התקדמות וכיול קצבים";
+  else if (wd === REST_DAY) g = "מנוחה — כאן השרירים נבנים";
+  else if (STRENGTH_DAYS.includes(wd)) g = "כוח: עוד צעד ליעד 7 מתח";
+  else if (/אינטרוול/.test(label)) g = "VO2max ↑ — הדרך לסאב-50";
+  else if (/טמפו/.test(label)) g = "להחזיק קצב מירוץ לאורך זמן";
+  else if (/טייפר/.test(label)) g = "טייפר — מגיעים טריים למירוץ";
+  else if (RUN_DAYS.includes(wd)) g = "בסיס אירובי Z2 + ליבה";
+  else g = "";
+  if (milestone && !/מירוץ|מבחן/.test(label)) g = "🎯 " + milestone.label + (g ? " · " + g : "");
+  if (wd === 0) g += " · ⚖️ מדידה";
+  const note = state.plan.notes && state.plan.notes[dateIso];
+  return note ? "📝 " + g : g;
+}
 
 function planNodesAt(lane, dateIso) {
   return state.plan.nodes
@@ -2590,6 +2613,11 @@ function renderPlan() {
           v.textContent = e.weight ? Math.round(e.weight) : "•";
           cell.appendChild(v);
         }
+      } else if (lane.id === "insight") {
+        cell.classList.add("insight");
+        cell.textContent = dayGist(dateIso);
+        cell.title = "לחיצה — סדר יום, הסבר מלא והערה אישית";
+        cell.addEventListener("click", () => openDaySchedule(dateIso));
       } else {
         // שכבה אוטומטית: מה מתוכנן לפי היום בשבוע + מה בוצע בפועל.
         // נקודה אפורה רק כשאין צומת ביום — צומת מייצג את האימון בעצמו.
