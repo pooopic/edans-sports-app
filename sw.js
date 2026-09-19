@@ -1,4 +1,4 @@
-const CACHE = "edan-tracker-v41";
+const CACHE = "edan-tracker-v42";
 const ASSETS = [
   "./",
   "./index.html",

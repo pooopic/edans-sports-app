@@ -2661,6 +2661,7 @@ function renderPlan() {
   }
 
   drawPlanEdges(gantt);
+  updatePlanUndoBtn();
 
   // גלילה כך שהיום צמוד לקצה הימני (RTL) — העבר נגלל החוצה ימינה, העתיד נפרש שמאלה
   const wrap = gantt.parentElement;
@@ -2723,17 +2724,70 @@ function drawPlanEdges(gantt) {
   gantt.appendChild(svg);
 }
 
-/* גרירת צומת בין תאים: תזוזה מעל 8px = גרירה (עם הדגשת תא היעד), אחרת עריכה */
+/* ביטול (Undo) לשינויים בתכנון: לפני כל שינוי נשמר צילום מקומי של הצמתים */
+const PLAN_UNDO_KEY = "edan-plan-undo";
+function planUndoStack() {
+  try { return JSON.parse(localStorage.getItem(PLAN_UNDO_KEY)) || []; } catch (e) { return []; }
+}
+function pushPlanUndo() {
+  try {
+    const stack = planUndoStack();
+    stack.push(JSON.stringify(state.plan.nodes));
+    while (stack.length > 15) stack.shift();
+    localStorage.setItem(PLAN_UNDO_KEY, JSON.stringify(stack));
+  } catch (e) {}
+  updatePlanUndoBtn();
+}
+function updatePlanUndoBtn() {
+  const btn = $("#plan-undo");
+  if (btn) btn.disabled = planUndoStack().length === 0;
+}
+$("#plan-undo").addEventListener("click", () => {
+  const stack = planUndoStack();
+  if (!stack.length) return;
+  state.plan.nodes = JSON.parse(stack.pop());
+  try { localStorage.setItem(PLAN_UNDO_KEY, JSON.stringify(stack)); } catch (e) {}
+  save();
+  renderPlan();
+  updatePlanUndoBtn();
+});
+
+document.addEventListener("keydown", (e) => {
+  // Ctrl+Z במסך התכנון (כשלא מקלידים בשדה) — ביטול השינוי האחרון
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" &&
+      !$("#screen-plan").classList.contains("hidden") &&
+      !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) {
+    e.preventDefault();
+    $("#plan-undo").click();
+  }
+});
+
+/* גרירת צומת בין תאים. עכבר: תזוזה מעל 8px = גרירה, אחרת עריכה.
+   מגע (טלפון): גרירה רק אחרי לחיצה ארוכה (350ms, עם רטט) — מגע קצר תוך כדי
+   גלילה לא מזיז יותר צמתים בטעות; הקשה קצרה עדיין פותחת עריכה. */
 function makeNodeDraggable(chip, node) {
   chip.addEventListener("click", (e) => e.stopPropagation());
   chip.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     e.stopPropagation();
     chip.setPointerCapture(e.pointerId);
+    const isTouch = e.pointerType === "touch";
     const startX = e.clientX, startY = e.clientY;
-    let dragging = false, targetCell = null;
+    let dragging = false, dragArmed = !isTouch, targetCell = null, moved = false;
+    let holdTimer = null;
+    if (isTouch) {
+      holdTimer = setTimeout(() => {
+        if (moved) return; // האצבע כבר זזה — זו הייתה גלילה/החלקה, לא אחיזה
+        dragArmed = true;
+        dragging = true;
+        chip.classList.add("dragging-node");
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 350);
+    }
     const move = (ev) => {
-      if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) {
+      const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+      if (dist > 10) moved = true;
+      if (!dragging && dragArmed && dist > 8) {
         dragging = true;
         chip.classList.add("dragging-node");
       }
@@ -2745,16 +2799,20 @@ function makeNodeDraggable(chip, node) {
       if (cell) cell.classList.add("drop-target");
     };
     const finish = () => {
+      clearTimeout(holdTimer);
       chip.removeEventListener("pointermove", move);
       chip.classList.remove("dragging-node");
       if (targetCell) targetCell.classList.remove("drop-target");
-      if (dragging && targetCell) {
+      if (dragging && targetCell && (targetCell.dataset.date !== node.date || targetCell.dataset.lane !== node.lane)) {
+        pushPlanUndo();
         node.date = targetCell.dataset.date;
         node.lane = targetCell.dataset.lane;
         save();
         renderPlan();
-      } else if (!dragging) {
+      } else if (!dragging && !moved) {
         openPlanEditor(node.id, node.date, node.lane);
+      } else if (dragging) {
+        renderPlan(); // גרירה שלא ננחתה על תא — חוזרים למקום
       }
     };
     chip.addEventListener("pointermove", move);
@@ -2925,6 +2983,7 @@ $("#plan-open-day").addEventListener("click", () => {
 });
 $("#plan-delete").addEventListener("click", () => {
   if (!confirm("להסיר את הצומת מהתכנון?")) return;
+  pushPlanUndo();
   state.plan.nodes = state.plan.nodes.filter((n) => n.id !== editingPlanNodeId);
   save();
   $("#plan-modal").classList.add("hidden");
@@ -2945,6 +3004,7 @@ $("#plan-save").addEventListener("click", () => {
     time: $("#plan-time").value || undefined,
     label,
   };
+  pushPlanUndo();
   if (editingPlanNodeId) {
     Object.assign(state.plan.nodes.find((n) => n.id === editingPlanNodeId), data);
   } else {
