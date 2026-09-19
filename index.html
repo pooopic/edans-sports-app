@@ -272,8 +272,29 @@
     </header>
 
     <div class="card">
-      <div class="card-head"><h2>💾 גיבוי והעברה בין מכשירים</h2></div>
-      <p class="hint">הנתונים שמורים בכל מכשיר בנפרד. ייצוא מוריד קובץ עם הכל (חוץ מתמונות); ייבוא במכשיר השני מחליף את הנתונים שם. שימושי גם כגיבוי תקופתי.</p>
+      <div class="card-head"><h2>🔄 סנכרון וגיבוי</h2></div>
+      <div id="sync-off">
+        <p class="hint">סנכרון אוטומטי בין הטלפון למחשב דרך חשבון ה-GitHub שלך: הנתונים נשמרים ב-Gist סודי בחשבון, וכל מכשיר מחובר מתעדכן אוטומטית — כולל כל הוי שסימנת. הנתונים נשארים אצלך בלבד.</p>
+        <details class="hint" style="margin-bottom:8px;">
+          <summary>איך יוצרים טוקן (פעם אחת, ~2 דקות)</summary>
+          <ol style="padding-inline-start:18px; margin:6px 0;">
+            <li>נכנסים ל-<a href="https://github.com/settings/tokens/new?scopes=gist&description=edan-tracker-sync" target="_blank" rel="noopener">github.com/settings/tokens/new</a> (מחוברים לחשבון)</li>
+            <li>ההרשאה היחידה שצריך: <b>gist</b> (כבר מסומנת בקישור) · Expiration: No expiration</li>
+            <li>Generate token ← מעתיקים ומדביקים כאן. את אותו טוקן מדביקים גם במכשיר השני.</li>
+          </ol>
+        </details>
+        <label>GitHub Token<input id="sync-token" type="password" placeholder="ghp_..." autocomplete="off"></label>
+        <button id="sync-connect" class="btn primary" style="width:100%; margin-top:8px;">🔗 חבר סנכרון</button>
+      </div>
+      <div id="sync-on" class="hidden">
+        <p class="hint">✅ הסנכרון פועל: כל שינוי נדחף אוטומטית, ופתיחת האפליקציה מושכת את הגרסה האחרונה מהמכשיר השני.</p>
+        <div class="row gap">
+          <button id="sync-now" class="btn grow">🔄 סנכרן עכשיו</button>
+          <button id="sync-disconnect" class="btn ghost danger">נתק</button>
+        </div>
+      </div>
+      <p class="hint" id="sync-status" style="margin:8px 0 4px;"></p>
+      <p class="hint" style="border-top:1px solid var(--line); padding-top:8px;">גיבוי ידני לקובץ (עובד גם בלי סנכרון; לא כולל תמונות):</p>
       <div class="row gap">
         <button id="data-export" class="btn grow">⬇️ ייצא נתונים</button>
         <button id="data-import" class="btn grow ghost">⬆️ ייבא נתונים</button>
@@ -482,11 +503,12 @@
         <select id="plan-lane">
           <option value="strength">💪 כוח</option>
           <option value="run">🏃 ריצה</option>
+          <option value="food">🍽️ ארוחה</option>
           <option value="milestone">🎯 יעד / אבן דרך</option>
         </select>
       </label>
     </div>
-    <label>אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)<select id="plan-template"></select></label>
+    <label><span id="plan-source-label">אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)</span><select id="plan-template"></select></label>
     <label>תווית<input id="plan-label" type="text" placeholder="טמפו 15ד / מבחן 5K / סאב-60..."></label>
     <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 8px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
     <div class="row gap">

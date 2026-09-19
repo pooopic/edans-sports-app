@@ -1,4 +1,4 @@
-const CACHE = "edan-tracker-v34";
+const CACHE = "edan-tracker-v35";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,6 +28,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
+  if (url.origin !== location.origin) return; // קריאות חוץ (כמו סנכרון GitHub) — ישירות לרשת, בלי קאש
   const isCore =
     e.request.mode === "navigate" ||
     ["document", "script", "style", "manifest"].includes(e.request.destination) ||

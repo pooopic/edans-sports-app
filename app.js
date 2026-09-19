@@ -646,6 +646,16 @@ if (state.seedV === 16) {
   save();
 }
 
+/* שדרוג 18: מירוץ העגור 10 ק"מ — 30.10, נעוץ כאבן דרך בתכנון */
+if (state.seedV === 17) {
+  if (!state.plan) state.plan = { nodes: [] };
+  if (!state.plan.nodes.some((n) => n.id === "pl-agur-2026")) {
+    state.plan.nodes.push({ id: "pl-agur-2026", date: "2026-10-30", lane: "milestone", label: "🏁 מירוץ העגור 10K" });
+  }
+  state.seedV = 18;
+  save();
+}
+
 /* שדרוג 12: מסך אימונים מודולרי — מאגר תרגילים, מאגר אימונים,
    והמרת כל הרישומים הקיימים למבנה המאוחד w.ex + w.exList */
 if (!state.exercises) state.exercises = JSON.parse(JSON.stringify(DEFAULT_EXLIB));
@@ -685,6 +695,7 @@ function load() {
 }
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  try { queueSyncPush(); } catch (e) {} // סנכרון אוטומטי אם מחובר
 }
 
 /* ---------- תאריכים ---------- */
@@ -884,7 +895,40 @@ $("#btn-reset-week").addEventListener("click", () => {
 
 let scrolledToToday = false;
 
+/* גזירת תכנון ← תפריט: צומת ארוחה בגאנט מוסיף את הארוחה לתפריט של אותו יום.
+   הזזה/מחיקה של הצומת מסירה את השורה — אלא אם כבר סומנה כנאכלה. */
+function syncPlanMealsIntoWeek(weekKey) {
+  if (!state.plan || !state.plan.nodes) return;
+  const week = ensureWeek(weekKey);
+  let changed = false;
+  week.days.forEach((day, i) => {
+    const dateIso = addDays(weekKey, i);
+    const nodes = state.plan.nodes.filter((n) => n.lane === "food" && n.date === dateIso && n.mealId);
+    for (const node of nodes) {
+      if (!(day.items || []).some((it) => it.fromPlan === node.id)) {
+        const meal = mealById(node.mealId);
+        if (!meal) continue;
+        day.items = day.items || [];
+        day.items.push({
+          id: newId("mi"), label: "מתוכנן 📅", text: meal.name,
+          mealId: node.mealId, protein: mealProtein(meal), eaten: false, fromPlan: node.id,
+        });
+        day.protein = Math.round((day.protein || 0) + mealProtein(meal));
+        changed = true;
+      }
+    }
+    const stale = (day.items || []).filter((it) => it.fromPlan && !it.eaten && !nodes.some((n) => n.id === it.fromPlan));
+    for (const it of stale) {
+      day.items = day.items.filter((x) => x !== it);
+      if (it.protein) day.protein = Math.max(0, Math.round((day.protein || 0) - it.protein));
+      changed = true;
+    }
+  });
+  if (changed) save();
+}
+
 function renderMenu() {
+  syncPlanMealsIntoWeek(currentWeekKey);
   const week = ensureWeek(currentWeekKey);
   const endKey = addDays(currentWeekKey, 6);
   $("#week-label").textContent = `${shortDate(currentWeekKey)} – ${shortDate(endKey)}`;
@@ -2275,6 +2319,7 @@ const PLAN_PAST_WEEKS = 4; // היסטוריה: מציגים גם שבועות �
 const PLAN_LANES = [
   { id: "strength", label: "💪 כוח" },
   { id: "run", label: "🏃 ריצה" },
+  { id: "food", label: "🍽️ ארוחות" },
   { id: "milestone", label: "🎯 יעדים" },
   { id: "body", label: "⚖️ גוף" },
 ];
@@ -2421,28 +2466,42 @@ function makeNodeDraggable(chip, node) {
 }
 
 let editingPlanNodeId = null;
+/* מסלול ארוחות בוחר ארוחה מהמאגר; שאר המסלולים — אימון מהמאגר */
+function fillPlanSourceSelect(lane, node) {
+  const sel = $("#plan-template");
+  sel.innerHTML = '<option value="">—</option>';
+  const isFood = lane === "food";
+  $("#plan-source-label").textContent = isFood
+    ? "ארוחה מהמאגר — תתווסף אוטומטית לתפריט השבועי של אותו יום"
+    : "אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)";
+  const src = isFood ? state.meals : state.workoutTemplates;
+  for (const t of src) {
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = isFood ? `${t.name} (${mealProtein(t)} ג׳ חלבון)` : t.name;
+    if (node && (node.templateId === t.id || node.mealId === t.id)) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
 function openPlanEditor(nodeId, dateIso, lane) {
   editingPlanNodeId = nodeId;
   const node = nodeId ? state.plan.nodes.find((n) => n.id === nodeId) : null;
   $("#plan-modal-title").textContent = node ? "עריכת צומת" : "שיבוץ בתכנון";
   $("#plan-date").value = node ? node.date : dateIso;
   $("#plan-lane").value = node ? node.lane : lane;
-  const sel = $("#plan-template");
-  sel.innerHTML = '<option value="">—</option>';
-  for (const tpl of state.workoutTemplates) {
-    const opt = document.createElement("option");
-    opt.value = tpl.id;
-    opt.textContent = tpl.name;
-    if (node && node.templateId === tpl.id) opt.selected = true;
-    sel.appendChild(opt);
-  }
+  fillPlanSourceSelect(node ? node.lane : lane, node);
   $("#plan-label").value = node ? node.label : "";
   $("#plan-delete").classList.toggle("hidden", !node);
   $("#plan-modal").classList.remove("hidden");
 }
+$("#plan-lane").addEventListener("change", () => {
+  const node = editingPlanNodeId ? state.plan.nodes.find((n) => n.id === editingPlanNodeId) : null;
+  fillPlanSourceSelect($("#plan-lane").value, node);
+});
 $("#plan-template").addEventListener("change", () => {
-  const tpl = templateById($("#plan-template").value);
-  if (tpl && !$("#plan-label").value.trim()) $("#plan-label").value = tpl.name;
+  const id = $("#plan-template").value;
+  const src = $("#plan-lane").value === "food" ? mealById(id) : templateById(id);
+  if (src && !$("#plan-label").value.trim()) $("#plan-label").value = src.name;
 });
 $("#plan-cancel").addEventListener("click", () => $("#plan-modal").classList.add("hidden"));
 $("#plan-open-day").addEventListener("click", () => {
@@ -2464,10 +2523,13 @@ $("#plan-save").addEventListener("click", () => {
   const label = $("#plan-label").value.trim();
   const date = $("#plan-date").value;
   if (!label || !date) { alert("חסרים תווית או תאריך."); return; }
+  const lane = $("#plan-lane").value;
+  const srcId = $("#plan-template").value || undefined;
   const data = {
     date,
-    lane: $("#plan-lane").value,
-    templateId: $("#plan-template").value || undefined,
+    lane,
+    templateId: lane === "food" ? undefined : srcId,
+    mealId: lane === "food" ? srcId : undefined,
     label,
   };
   if (editingPlanNodeId) {
@@ -3401,6 +3463,185 @@ $("#data-import-file").addEventListener("change", (e) => {
     }
   };
   reader.readAsText(file);
+});
+
+/* ---------- סנכרון אוטומטי בין מכשירים (GitHub Gist פרטי) ----------
+   ה"משתמש" הוא חשבון ה-GitHub הקיים: הנתונים נשמרים ב-Gist סודי בחשבון שלו,
+   כל מכשיר מחובר עם אותו טוקן. פתיחת האפליקציה מושכת את הגרסה האחרונה,
+   וכל שינוי נדחף אוטומטית (עם השהיה קצרה). הטוקן לא נכלל בנתונים שנדחפים. */
+const SYNC_FILE = "edan-tracker.json";
+const SYNC_META_KEY = "edan-sync-meta";
+let syncPushTimer = null;
+let syncBusy = false;
+let syncReady = false; // דחיפות מתחילות רק אחרי המשיכה הראשונית — שלא נדרוס גרסה חדשה ממכשיר אחר
+
+function syncCfg() { return (state.settings && state.settings.sync) || null; }
+function syncMeta() {
+  try { return JSON.parse(localStorage.getItem(SYNC_META_KEY)) || {}; } catch (e) { return {}; }
+}
+function setSyncMeta(m) { try { localStorage.setItem(SYNC_META_KEY, JSON.stringify(m)); } catch (e) {} }
+
+async function ghApi(path, opts = {}, token) {
+  const res = await fetch("https://api.github.com" + path, {
+    ...opts,
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/vnd.github+json",
+      ...(opts.body ? { "Content-Type": "application/json" } : {}),
+    },
+  });
+  if (!res.ok) throw new Error("GitHub " + res.status);
+  return res.json();
+}
+
+function syncPayloadStr(changedAt) {
+  const clean = JSON.parse(JSON.stringify(state));
+  if (clean.settings) delete clean.settings.sync; // הטוקן נשאר במכשיר בלבד
+  return JSON.stringify({ app: "edan-tracker", changedAt, state: clean });
+}
+
+function syncStatusMsg(text, isError) {
+  const el = $("#sync-status");
+  if (el) { el.textContent = text; el.style.color = isError ? "var(--danger, #e5484d)" : "var(--muted)"; }
+}
+
+function queueSyncPush() {
+  if (!syncReady || !syncCfg()) return;
+  clearTimeout(syncPushTimer);
+  syncPushTimer = setTimeout(() => { syncPushTimer = null; syncPushNow(); }, 4000);
+}
+
+async function syncPushNow() {
+  const cfg = syncCfg();
+  if (!cfg || syncBusy) return;
+  syncBusy = true;
+  try {
+    const changedAt = Date.now();
+    await ghApi("/gists/" + cfg.gistId, {
+      method: "PATCH",
+      body: JSON.stringify({ files: { [SYNC_FILE]: { content: syncPayloadStr(changedAt) } } }),
+    }, cfg.token);
+    setSyncMeta({ ...syncMeta(), lastSyncedAt: changedAt });
+    syncStatusMsg("מסונכרן ✓ " + new Date(changedAt).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }));
+  } catch (e) {
+    syncStatusMsg("שגיאת סנכרון: " + e.message + " — ינוסה שוב בשינוי הבא", true);
+  }
+  syncBusy = false;
+}
+
+function adoptRemoteState(remoteState) {
+  const cfg = syncCfg();
+  remoteState.settings = remoteState.settings || {};
+  if (cfg) remoteState.settings.sync = cfg; // שומרים את חיבור הסנכרון של המכשיר הזה
+  localStorage.setItem(STORE_KEY, JSON.stringify(remoteState));
+  location.reload();
+}
+
+async function syncPull(manual) {
+  const cfg = syncCfg();
+  if (!cfg || syncBusy) return;
+  syncBusy = true;
+  try {
+    const gist = await ghApi("/gists/" + cfg.gistId, {}, cfg.token);
+    const file = gist.files && gist.files[SYNC_FILE];
+    const payload = file && JSON.parse(file.truncated ? await (await fetch(file.raw_url)).text() : file.content);
+    syncBusy = false;
+    if (!payload || !payload.state) { if (manual) syncPushNow(); return; }
+    const meta = syncMeta();
+    if (payload.changedAt > (meta.lastSyncedAt || 0)) {
+      // מישהו (מכשיר אחר) דחף גרסה חדשה יותר מאז הסנכרון האחרון שלנו
+      if (syncPushTimer) return; // יש כאן שינוי טרי שעוד לא נדחף — הוא ינצח וידחף מיד
+      const localClean = JSON.parse(syncPayloadStr(0)).state;
+      if (JSON.stringify(localClean) === JSON.stringify(payload.state)) {
+        // אותו תוכן בדיוק — רק מעדכנים את הסימון, בלי רענון מיותר
+        setSyncMeta({ ...meta, lastSyncedAt: payload.changedAt });
+        syncStatusMsg("מסונכרן ✓");
+        return;
+      }
+      setSyncMeta({ ...meta, lastSyncedAt: payload.changedAt });
+      adoptRemoteState(payload.state);
+    } else if (manual) {
+      syncPushNow();
+    } else {
+      syncStatusMsg("מסונכרן ✓");
+    }
+  } catch (e) {
+    syncBusy = false;
+    syncStatusMsg("שגיאת סנכרון: " + e.message, true);
+  }
+}
+
+async function syncConnect(token) {
+  syncStatusMsg("מתחבר...");
+  try {
+    const gists = await ghApi("/gists?per_page=100", {}, token);
+    let existing = gists.find((g) => g.files && g.files[SYNC_FILE]);
+    if (existing) {
+      const full = await ghApi("/gists/" + existing.id, {}, token);
+      const file = full.files[SYNC_FILE];
+      const payload = JSON.parse(file.truncated ? await (await fetch(file.raw_url)).text() : file.content);
+      state.settings.sync = { token, gistId: existing.id };
+      save();
+      if (payload && payload.state && confirm(
+        "נמצאו נתונים מסונכרנים מהמכשיר השני (עדכון אחרון: " +
+        new Date(payload.changedAt).toLocaleString("he-IL") +
+        ").\nלטעון אותם למכשיר הזה? (ביטול = הנתונים במכשיר הזה יידחפו במקום)")) {
+        setSyncMeta({ lastSyncedAt: payload.changedAt });
+        adoptRemoteState(payload.state);
+        return;
+      }
+      await syncPushNow();
+    } else {
+      const created = await ghApi("/gists", {
+        method: "POST",
+        body: JSON.stringify({
+          description: "המעקב של עדן — סנכרון בין מכשירים",
+          public: false,
+          files: { [SYNC_FILE]: { content: syncPayloadStr(Date.now()) } },
+        }),
+      }, token);
+      state.settings.sync = { token, gistId: created.id };
+      save();
+      setSyncMeta({ lastSyncedAt: Date.now() });
+    }
+    renderSyncBox();
+    syncStatusMsg("מחובר ✓ — הנתונים יסתנכרנו אוטומטית");
+  } catch (e) {
+    syncStatusMsg("החיבור נכשל: " + e.message + " — בדוק שהטוקן תקין ושיש לו הרשאת gist", true);
+  }
+}
+
+function renderSyncBox() {
+  const connected = !!syncCfg();
+  $("#sync-off").classList.toggle("hidden", connected);
+  $("#sync-on").classList.toggle("hidden", !connected);
+  if (connected) {
+    const m = syncMeta();
+    syncStatusMsg(m.lastSyncedAt ? "סנכרון אחרון: " + new Date(m.lastSyncedAt).toLocaleString("he-IL") : "מחובר");
+  }
+}
+
+$("#sync-connect").addEventListener("click", () => {
+  const token = $("#sync-token").value.trim();
+  if (!token) { alert("צריך להדביק טוקן של GitHub (עם הרשאת gist)."); return; }
+  $("#sync-token").value = "";
+  syncConnect(token);
+});
+$("#sync-now").addEventListener("click", () => syncPull(true));
+$("#sync-disconnect").addEventListener("click", () => {
+  if (!confirm("לנתק את הסנכרון במכשיר הזה? הנתונים יישארו, רק יפסיקו להתעדכן אוטומטית.")) return;
+  delete state.settings.sync;
+  save();
+  renderSyncBox();
+});
+renderSyncBox();
+if (syncCfg()) {
+  syncPull(false).finally(() => { syncReady = true; });
+} else {
+  syncReady = true;
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && syncCfg()) syncPull(false);
 });
 
 /* ============================ אתחול ============================ */
