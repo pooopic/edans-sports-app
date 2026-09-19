@@ -1965,17 +1965,16 @@ function renderPlan() {
           dot.className = "gantt-dot" + (w && w.done ? " done" : "");
           cell.appendChild(dot);
         }
-        // צמתים משובצים
+        cell.dataset.date = dateIso;
+        cell.dataset.lane = lane.id;
+        // צמתים משובצים — גרירה מזיזה, הקשה קצרה עורכת
         for (const node of planNodesAt(lane.id, dateIso)) {
           const chip = document.createElement("span");
           chip.className = "gantt-node" + (lane.id === "milestone" ? " milestone" : "") +
             (w && w.done ? " done-node" : "");
           chip.textContent = node.label;
-          chip.title = node.label;
-          chip.addEventListener("click", (e) => {
-            e.stopPropagation();
-            openPlanEditor(node.id, dateIso, lane.id);
-          });
+          chip.title = node.label + " — גרור להזזה, הקש לעריכה";
+          makeNodeDraggable(chip, node);
           cell.appendChild(chip);
         }
         cell.addEventListener("click", () => openPlanEditor(null, dateIso, lane.id));
@@ -1988,6 +1987,46 @@ function renderPlan() {
   // גלילה כך שהיום נראה (RTL — היום בקצה הימני, גוללים לימין)
   const wrap = gantt.parentElement;
   wrap.scrollLeft = wrap.scrollWidth; // RTL: הקצה ההתחלתי
+}
+
+/* גרירת צומת בין תאים: תזוזה מעל 8px = גרירה (עם הדגשת תא היעד), אחרת עריכה */
+function makeNodeDraggable(chip, node) {
+  chip.addEventListener("click", (e) => e.stopPropagation());
+  chip.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    chip.setPointerCapture(e.pointerId);
+    const startX = e.clientX, startY = e.clientY;
+    let dragging = false, targetCell = null;
+    const move = (ev) => {
+      if (!dragging && Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) {
+        dragging = true;
+        chip.classList.add("dragging-node");
+      }
+      if (!dragging) return;
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const cell = el && el.closest ? el.closest(".gantt-cell[data-date]") : null;
+      if (targetCell && targetCell !== cell) targetCell.classList.remove("drop-target");
+      targetCell = cell;
+      if (cell) cell.classList.add("drop-target");
+    };
+    const finish = () => {
+      chip.removeEventListener("pointermove", move);
+      chip.classList.remove("dragging-node");
+      if (targetCell) targetCell.classList.remove("drop-target");
+      if (dragging && targetCell) {
+        node.date = targetCell.dataset.date;
+        node.lane = targetCell.dataset.lane;
+        save();
+        renderPlan();
+      } else if (!dragging) {
+        openPlanEditor(node.id, node.date, node.lane);
+      }
+    };
+    chip.addEventListener("pointermove", move);
+    chip.addEventListener("pointerup", finish, { once: true });
+    chip.addEventListener("pointercancel", finish, { once: true });
+  });
 }
 
 let editingPlanNodeId = null;
