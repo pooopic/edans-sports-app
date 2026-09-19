@@ -253,6 +253,16 @@
       <div class="topbar-title"><h1>התקדמות</h1></div>
     </header>
 
+    <div class="card">
+      <div class="card-head"><h2>💾 גיבוי והעברה בין מכשירים</h2></div>
+      <p class="hint">הנתונים שמורים בכל מכשיר בנפרד. ייצוא מוריד קובץ עם הכל (חוץ מתמונות); ייבוא במכשיר השני מחליף את הנתונים שם. שימושי גם כגיבוי תקופתי.</p>
+      <div class="row gap">
+        <button id="data-export" class="btn grow">⬇️ ייצא נתונים</button>
+        <button id="data-import" class="btn grow ghost">⬆️ ייבא נתונים</button>
+      </div>
+      <input id="data-import-file" type="file" accept=".json,application/json" class="hidden">
+    </div>
+
     <div class="card streak-card">
       <div class="streak-num"><span id="streak-count">0</span> 🔥</div>
       <div class="streak-label">רצף אימונים</div>

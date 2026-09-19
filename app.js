@@ -2972,6 +2972,38 @@ function drawRunChart() {
   drawLineChart($("#chart-run"), points, ' ק"מ');
 }
 
+/* ---------- גיבוי והעברה בין מכשירים ---------- */
+$("#data-export").addEventListener("click", () => {
+  const payload = JSON.stringify({ app: "edan-tracker", exportedAt: new Date().toISOString(), state }, null, 1);
+  const blob = new Blob([payload], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `edan-tracker-${todayIso()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
+$("#data-import").addEventListener("click", () => $("#data-import-file").click());
+$("#data-import-file").addEventListener("change", (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const incoming = data.app === "edan-tracker" ? data.state : data;
+      if (!incoming || (!incoming.weeks && !incoming.seedV)) throw new Error("not a backup");
+      if (!confirm(`לייבא נתונים מ-${data.exportedAt ? data.exportedAt.slice(0, 10) : "קובץ"}? כל הנתונים במכשיר הזה יוחלפו.`)) return;
+      localStorage.setItem(STORE_KEY, JSON.stringify(incoming));
+      location.reload();
+    } catch (err) {
+      alert("הקובץ לא נראה כמו גיבוי של האפליקציה.");
+    }
+  };
+  reader.readAsText(file);
+});
+
 /* ============================ אתחול ============================ */
 
 if ("serviceWorker" in navigator) {
