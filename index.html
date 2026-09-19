@@ -67,6 +67,8 @@
       <p class="hint" style="margin:0;">אין רישום אימון היום. השרירים גדלים במנוחה — נתראה מחר ב־💪</p>
     </div>
 
+    <div class="workout-grid">
+    <div class="wcol-a">
     <!-- ריצה -->
     <div id="card-run" class="card">
       <div class="card-head"><h2>🏃 ריצה</h2></div>
@@ -135,6 +137,8 @@
       </div>
     </div>
 
+    </div><!-- /wcol-a -->
+    <div class="wcol-main">
     <!-- תרגילים — רשימה מודולרית מתוך מאגר התרגילים -->
     <div id="card-exercises" class="card">
       <div class="card-head">
@@ -157,6 +161,8 @@
       </div>
     </div>
 
+    </div><!-- /wcol-main -->
+    <div class="wcol-b">
     <!-- טיימר מנוחה -->
     <div id="card-timer" class="card">
       <div class="card-head"><h2>⏱️ טיימר מנוחה</h2></div>
@@ -168,7 +174,15 @@
       </div>
     </div>
 
-    <button id="btn-finish-workout" class="btn primary big">✅ סיים אימון</button>
+    <!-- בנאי אימוני ריצה -->
+    <div id="card-runbuilder" class="card">
+      <div class="card-head">
+        <h2>🛠️ אימוני ריצה לגרמין</h2>
+        <button id="rwk-add" class="btn small">+ חדש</button>
+      </div>
+      <p class="hint">בונים אימון בצעדים עם אזורי דופק, מייצאים ‎.FIT ומייבאים ב־Garmin Connect (אתר ← Training ← Workouts ← Import).</p>
+      <div id="rwk-list"></div>
+    </div>
 
     <!-- ייצוא ליומן -->
     <div class="card">
@@ -183,6 +197,10 @@
       </div>
       <button id="ics-export" class="btn small" style="margin-top:8px; width:100%;">⬇️ הורד קובץ ‎.ics (כוח א׳/ג׳/ה׳ · ריצה ב׳/ד׳/ו׳)</button>
     </div>
+    </div><!-- /wcol-b -->
+    </div><!-- /workout-grid -->
+
+    <button id="btn-finish-workout" class="btn primary big">✅ סיים אימון</button>
   </section>
 
   <!-- ===== מסך תכנון (גאנט) ===== -->
@@ -417,6 +435,43 @@
   </div>
 </div>
 
+<!-- מודאל בנאי אימון ריצה -->
+<div id="rwk-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="rwk-title">אימון ריצה</h2>
+    <label>שם האימון<input id="rwk-name" type="text" placeholder="אינטרוולים 6×2 Z4"></label>
+    <p class="hint" style="margin:8px 0 4px;">גרור ≡ לשינוי סדר · "חזרה" חוזרת על טווח צעדים לפי מספרם</p>
+    <div id="rwk-steps"></div>
+    <div class="row gap">
+      <button id="rwk-step-add" class="btn small">+ צעד</button>
+      <button id="rwk-repeat-add" class="btn small ghost">+ חזרה על צעדים</button>
+    </div>
+    <div class="row gap" style="margin-top:12px;">
+      <button id="rwk-save" class="btn primary grow">שמור</button>
+      <button id="rwk-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="rwk-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל עריכת תבנית אימון כוח -->
+<div id="tpl-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>עריכת אימון</h2>
+    <label>שם<input id="tpl-name" type="text"></label>
+    <p class="hint" style="margin:8px 0 4px;">גרור ≡ לשינוי סדר · ✕ מסיר</p>
+    <div id="tpl-list"></div>
+    <div class="row gap">
+      <select id="tpl-ex-pick" class="grow"></select>
+      <button id="tpl-ex-add" class="btn small">+ הוסף</button>
+    </div>
+    <div class="row gap" style="margin-top:12px;">
+      <button id="tpl-save" class="btn primary grow">שמור</button>
+      <button id="tpl-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <!-- מודאל צומת תכנון -->
 <div id="plan-modal" class="modal hidden">
   <div class="modal-box">
@@ -433,6 +488,7 @@
     </div>
     <label>אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)<select id="plan-template"></select></label>
     <label>תווית<input id="plan-label" type="text" placeholder="טמפו 15ד / מבחן 5K / סאב-60..."></label>
+    <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 8px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
     <div class="row gap">
       <button id="plan-save" class="btn primary grow">שמור</button>
       <button id="plan-delete" class="btn ghost danger hidden">🗑️</button>
@@ -469,9 +525,25 @@
         </label>
       </div>
       <label style="margin-top:8px;">הערת טכניקה (לא חובה)<input id="ex-new-hint" type="text"></label>
+      <label style="margin-top:8px;">קישור לסרטון הדגמה (לא חובה)<input id="ex-new-video" type="url" placeholder="https://www.youtube.com/..."></label>
       <button id="ex-add-new" class="btn primary" style="width:100%; margin-top:8px;">צור והוסף לאימון</button>
     </div>
     <button id="ex-cancel" class="btn ghost" style="width:100%; margin-top:8px;">ביטול</button>
+  </div>
+</div>
+
+<!-- מודאל הדגמת תרגיל -->
+<div id="demo-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="demo-name">תרגיל</h2>
+    <p class="hint" id="demo-hint"></p>
+    <div class="demo-cues">
+      <h3 style="margin:10px 0 6px; font-size:15px;">דגשי טכניקה</h3>
+      <ul id="demo-cues" style="margin:0; padding-inline-start:20px;"></ul>
+    </div>
+    <a id="demo-video" class="btn primary" target="_blank" rel="noopener" style="display:block; text-align:center; margin-top:14px;">🎬 פתח סרטון הדגמה ביוטיוב</a>
+    <p class="hint" style="margin-top:6px;">הסרטון נפתח ביוטיוב — שם יש גם תמונות ומדריכים נוספים לאותו תרגיל.</p>
+    <button id="demo-cancel" class="btn ghost" style="width:100%; margin-top:8px;">סגור</button>
   </div>
 </div>
 

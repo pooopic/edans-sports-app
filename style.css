@@ -291,6 +291,62 @@ label.check { display: flex; gap: 8px; align-items: center; color: var(--text); 
 .streak-label { color: var(--muted); }
 canvas { width: 100%; display: block; }
 
+/* ---- run workout builder ---- */
+.rwk-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--card2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.rwk-step select, .rwk-step input { width: auto; padding: 6px 4px; font-size: 0.82rem; }
+.rwk-step input[type="number"] { width: 58px; text-align: center; }
+.rwk-step.dragging { opacity: 0.7; border-color: var(--accent); }
+.rwk-step.drop-before { border-top: 3px solid var(--accent); }
+.rwk-step.drop-after { border-bottom: 3px solid var(--accent); }
+.rwk-step-num { color: var(--muted); font-size: 0.75rem; min-width: 16px; text-align: center; }
+.rwk-summary { color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+
+/* ---- desktop layout (>=900px) ---- */
+.workout-grid { display: block; }
+@media (min-width: 900px) {
+  #app { max-width: 1100px; }
+  /* תפריט: כרטיסי ימים ברשת */
+  #menu-days {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+  #menu-days .card { margin-bottom: 0; }
+  /* אימונים: עמודת צד (ריצה/חבל/טיימר/בנאי) + עמודת תרגילים */
+  .workout-grid {
+    display: grid;
+    grid-template-columns: 400px minmax(0, 1fr);
+    gap: 0 14px;
+    align-items: start;
+  }
+  .wcol-a { grid-column: 1; grid-row: 1; }
+  .wcol-b { grid-column: 1; grid-row: 2; }
+  .wcol-main { grid-column: 2; grid-row: 1 / span 2; }
+  /* מזון, התקדמות: שתי עמודות */
+  #screen-food, #screen-progress {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 14px;
+    align-items: start;
+  }
+  #screen-food .topbar, #screen-progress .topbar { grid-column: 1 / -1; }
+  #screen-food.hidden, #screen-progress.hidden { display: none; }
+  /* קניות: שתי עמודות */
+  #shopping-list { column-count: 2; column-gap: 14px; }
+  .shop-item, .shop-cat { break-inside: avoid; }
+}
+
 /* ---- gantt planning ---- */
 .gantt-wrap {
   overflow-x: auto;
@@ -331,6 +387,7 @@ canvas { width: 100%; display: block; }
 }
 .gantt-cell.head { height: 34px; }
 .gantt-cell.today { background: rgba(76, 208, 138, 0.14); }
+.gantt-cell.past { opacity: 0.55; }
 .gantt-cell.weekstart { border-left: 2px solid var(--line); }
 .gantt-cell .day-num { font-size: 0.68rem; }
 .gantt-cell.head.today .day-num { color: var(--accent); font-weight: 700; }

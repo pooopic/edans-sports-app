@@ -83,18 +83,30 @@ const MENU_TEMPLATE = [
    mode קובע את שדות הרישום: weight = חזרות+משקל · reps = חזרות+בוצע ·
    seconds = שניות+טיימר+בוצע · pullup = סוג (מלא/גומייה)+חזרות */
 const DEFAULT_EXLIB = [
-  { id: "pullups",  name: "מתח", hint: "סט 1 מלא עד הכשל · סטים 2–3 גומייה יעד 7 · ב-7 מלאים סט 2 עובר למלא", mode: "pullup" },
-  { id: "row",      name: "חתירה בעמידה (Bent Over Row)", hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10 },
-  { id: "ohp",      name: "לחיצת כתפיים",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10 },
-  { id: "rdl",      name: "דדליפט רומני",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10 },
-  { id: "rearfly",  name: "Rear Delt Fly",                hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10 },
-  { id: "curl",     name: "Curl",                          hint: "משקולות 5 ק״ג — Hammer/רגיל מתחלפים", mode: "weight", defReps: 10, defWeight: 10 },
-  { id: "plank",    name: "פלאנק",                         hint: "▶ מפעיל טיימר: 5 שנ׳ היכון ואז שעון עולה", mode: "seconds", defSecs: 30 },
-  { id: "russian",  name: "Russian Twist",                 hint: "דאמבל 5 ק״ג · 12–15 לכל צד", mode: "reps", defReps: 12 },
-  { id: "situp",    name: "Weighted Sit-up",               hint: "דאמבל צמוד לחזה · 12–15", mode: "reps", defReps: 12 },
-  { id: "sidebend", name: "Dumbbell Side Bend",            hint: "12–15 לכל צד — להחליף יד בין סטים", mode: "reps", defReps: 12 },
-  { id: "deadbug",  name: "Dead Bug עם דאמבל",             hint: "דאמבל מעל החזה · לסירוגין רגל-רגל", mode: "reps", defReps: 12 },
-  { id: "suitcase", name: "Suitcase Carry",                hint: "הליכה עם דאמבל ביד אחת · 30–40 שנ׳ לכל יד", mode: "seconds", defSecs: 30 },
+  { id: "pullups",  name: "מתח", hint: "סט 1 מלא עד הכשל · סטים 2–3 גומייה יעד 7 · ב-7 מלאים סט 2 עובר למלא", mode: "pullup",
+    demoQuery: "pull up proper form tutorial", cues: ["אחיזה מעט רחבה מהכתפיים", "שכמות למטה ואחורה לפני המשיכה", "סנטר מעל המוט, ירידה איטית בשליטה"] },
+  { id: "row",      name: "חתירה בעמידה (Bent Over Row)", hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10,
+    demoQuery: "dumbbell bent over row form", cues: ["ברכיים כפופות קלות, גב ישר בהטיה ~45°", "מושכים אל המותן, מרפקים צמודים לגוף", "בלי תנופה — הגב לא זז"] },
+  { id: "ohp",      name: "לחיצת כתפיים",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 10, defWeight: 10,
+    demoQuery: "dumbbell shoulder press standing form", cues: ["ליבה אסופה — לא לקמר גב תחתון", "דחיפה מעל הראש עד יישור כמעט מלא", "ירידה איטית לגובה האוזניים"] },
+  { id: "rdl",      name: "דדליפט רומני",                 hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10,
+    demoQuery: "dumbbell romanian deadlift form", cues: ["ברכיים כפופות מעט וקבועות", "ירכיים נדחפות אחורה, גב ניטרלי", "יורדים עד מתיחה בירך האחורית — לא מעבר"] },
+  { id: "rearfly",  name: "Rear Delt Fly",                hint: "2× משקולות 5 ק״ג", mode: "weight", defReps: 12, defWeight: 10,
+    demoQuery: "rear delt fly dumbbell bent over form", cues: ["הטיה קדימה עם גב ישר", "פתיחה לצדדים עם מרפק רך", "משקל קל, טכניקה נקייה — לא תנופה"] },
+  { id: "curl",     name: "Curl",                          hint: "משקולות 5 ק״ג — Hammer/רגיל מתחלפים", mode: "weight", defReps: 10, defWeight: 10,
+    demoQuery: "hammer curl vs bicep curl form", cues: ["מרפקים צמודים לגוף ולא זזים", "בלי נדנוד גוף", "ירידה איטית — שם הכסף"] },
+  { id: "plank",    name: "פלאנק",                         hint: "▶ מפעיל טיימר: 5 שנ׳ היכון ואז שעון עולה", mode: "seconds", defSecs: 30,
+    demoQuery: "plank proper form", cues: ["גוף בקו ישר מהעקבים לראש", "בטן ועכוז אסופים", "לא לשקוע בין הכתפיים"] },
+  { id: "russian",  name: "Russian Twist",                 hint: "דאמבל 5 ק״ג · 12–15 לכל צד", mode: "reps", defReps: 12,
+    demoQuery: "russian twist dumbbell form", cues: ["גב ישר בהטיה אחורית", "הסיבוב מהליבה — המבט עוקב אחרי הידיים", "רגליים יציבות"] },
+  { id: "situp",    name: "Weighted Sit-up",               hint: "דאמבל צמוד לחזה · 12–15", mode: "reps", defReps: 12,
+    demoQuery: "weighted sit up dumbbell form", cues: ["דאמבל צמוד לחזה", "עלייה וירידה בשליטה", "הגב התחתון לא נחבט ברצפה"] },
+  { id: "sidebend", name: "Dumbbell Side Bend",            hint: "12–15 לכל צד — להחליף יד בין סטים", mode: "reps", defReps: 12,
+    demoQuery: "dumbbell side bend form", cues: ["הטיה לצד בלבד — בלי סיבוב", "מרגישים מתיחה בצד הנגדי", "טווח בינוני, בלי להתמוטט"] },
+  { id: "deadbug",  name: "Dead Bug עם דאמבל",             hint: "דאמבל מעל החזה · לסירוגין רגל-רגל", mode: "reps", defReps: 12,
+    demoQuery: "dead bug exercise dumbbell form", cues: ["גב תחתון צמוד לרצפה לאורך כל החזרה", "רגל יורדת לאט — לא נופלת", "נשיפה בהורדה"] },
+  { id: "suitcase", name: "Suitcase Carry",                hint: "הליכה עם דאמבל ביד אחת · 30–40 שנ׳ לכל יד", mode: "seconds", defSecs: 30,
+    demoQuery: "suitcase carry exercise form", cues: ["הליכה זקופה — הגוף לא נוטה לצד המשקולת", "כתפיים מאוזנות", "ליבה אסופה כל הדרך"] },
 ];
 /* מאגר אימונים — תבניות שאפשר לטעון ליום, לשמור חדשות ולערוך */
 const DEFAULT_WORKOUT_TEMPLATES = [
@@ -584,6 +596,53 @@ if (state.seedV === 14) {
     }
   }
   state.seedV = 15;
+  save();
+}
+
+/* שדרוג 16: בנאי אימוני ריצה — זריעת 4 אימוני התוכנית (זהים לקבצי ה-FIT שנשלחו) */
+if (!state.runWorkouts) state.runWorkouts = [];
+if (state.seedV === 15) {
+  const seeds = [
+    { id: "rw-easy", name: "ריצה קלה Z2 — 30 דק׳", steps: [
+      { kind: "warmup", dur: "time", val: 5, zone: 1 },
+      { kind: "active", dur: "time", val: 30, zone: 2 },
+      { kind: "cooldown", dur: "time", val: 5, zone: 1 },
+    ]},
+    { id: "rw-int33", name: "אינטרוולים 3×3 Z4", steps: [
+      { kind: "warmup", dur: "time", val: 10, zone: 2 },
+      { kind: "active", dur: "time", val: 3, zone: 4 },
+      { kind: "rest", dur: "time", val: 2, zone: 1 },
+      { kind: "repeat", from: 1, reps: 3 },
+      { kind: "cooldown", dur: "time", val: 8, zone: 1 },
+    ]},
+    { id: "rw-tempo", name: "טמפו 15 דק׳ Z4", steps: [
+      { kind: "warmup", dur: "time", val: 10, zone: 2 },
+      { kind: "active", dur: "time", val: 15, zone: 4 },
+      { kind: "cooldown", dur: "time", val: 8, zone: 1 },
+    ]},
+    { id: "rw-5k", name: "מבחן 5K", steps: [
+      { kind: "warmup", dur: "time", val: 10, zone: 2 },
+      { kind: "active", dur: "km", val: 5, zone: 0 },
+      { kind: "cooldown", dur: "time", val: 5, zone: 1 },
+    ]},
+  ];
+  for (const s of seeds) if (!state.runWorkouts.some((w) => w.id === s.id)) state.runWorkouts.push(s);
+  state.seedV = 16;
+  save();
+}
+
+/* שדרוג 17: דגשי טכניקה + חיפוש סרטון לכל תרגילי המאגר הקיימים */
+if (state.seedV === 16) {
+  if (Array.isArray(state.exercises)) {
+    for (const ex of state.exercises) {
+      const def = DEFAULT_EXLIB.find((d) => d.id === ex.id);
+      if (def) {
+        if (!ex.demoQuery) ex.demoQuery = def.demoQuery;
+        if (!ex.cues) ex.cues = def.cues;
+      }
+    }
+  }
+  state.seedV = 17;
   save();
 }
 
@@ -1230,6 +1289,7 @@ function renderWorkout() {
   renderRope(w);
   renderRun(w);
   renderDayExercises(w);
+  renderRunWorkouts();
 
   const finishBtn = $("#btn-finish-workout");
   finishBtn.textContent = w.done ? "✔ האימון הושלם (לחץ לביטול)" : "✅ סיים אימון";
@@ -1275,6 +1335,29 @@ function formatPrevSets(lib, sets) {
   return use.map((s) => (lib.mode === "seconds" ? s.secs : s.reps) || 0).join(" · ") + (lib.mode === "seconds" ? " שנ׳" : " חזרות");
 }
 
+function demoVideoUrl(lib) {
+  if (lib.videoUrl) return lib.videoUrl;
+  const q = lib.demoQuery || `${lib.name} exercise proper form`;
+  return "https://www.youtube.com/results?search_query=" + encodeURIComponent(q);
+}
+
+function openDemoModal(lib) {
+  $("#demo-name").textContent = lib.name;
+  $("#demo-hint").textContent = lib.hint || "";
+  const ul = $("#demo-cues");
+  ul.innerHTML = "";
+  const cues = lib.cues && lib.cues.length ? lib.cues : ["שמור על טכניקה נקייה וטווח תנועה מבוקר", "עדיף משקל קל ונקי ממשקל כבד ומרושל", "כאב חד = עוצרים"];
+  for (const c of cues) {
+    const li = document.createElement("li");
+    li.textContent = c;
+    li.style.margin = "4px 0";
+    ul.appendChild(li);
+  }
+  $("#demo-video").href = demoVideoUrl(lib);
+  $("#demo-modal").classList.remove("hidden");
+}
+$("#demo-cancel").addEventListener("click", () => $("#demo-modal").classList.add("hidden"));
+
 function renderDayExercises(w) {
   parkExTimer(); // אם הטיימר יושב בתוך בלוק — מחלצים אותו לפני שהרשימה נבנית מחדש
   const wrap = $("#day-ex-list");
@@ -1295,6 +1378,11 @@ function renderDayExercises(w) {
     const nameDiv = document.createElement("div");
     nameDiv.className = "grow";
     nameDiv.innerHTML = `<div class="exercise-name">${exDisplayName(lib, w)}</div><div class="exercise-equip">${escapeHtml(lib.hint || "")}</div>`;
+    const demoBtn = document.createElement("button");
+    demoBtn.className = "del-set demo-btn";
+    demoBtn.textContent = "🎬";
+    demoBtn.title = "הדגמה ודגשי טכניקה";
+    demoBtn.addEventListener("click", () => openDemoModal(lib));
     const removeBtn = document.createElement("button");
     removeBtn.className = "del-set";
     removeBtn.textContent = "✕";
@@ -1304,7 +1392,7 @@ function renderDayExercises(w) {
       save();
       renderDayExercises(w);
     });
-    head.append(handle, nameDiv, removeBtn);
+    head.append(handle, nameDiv, demoBtn, removeBtn);
     block.appendChild(head);
 
     const prev = lastSetsFor(exId, currentWorkoutDate);
@@ -1490,6 +1578,7 @@ $("#day-ex-add").addEventListener("click", () => {
   }
   $("#ex-new-name").value = "";
   $("#ex-new-hint").value = "";
+  $("#ex-new-video").value = "";
   $("#ex-modal").classList.remove("hidden");
 });
 $("#ex-cancel").addEventListener("click", () => $("#ex-modal").classList.add("hidden"));
@@ -1506,13 +1595,16 @@ $("#ex-add-existing").addEventListener("click", () => {
 $("#ex-add-new").addEventListener("click", () => {
   const name = $("#ex-new-name").value.trim();
   if (!name) { alert("חסר שם לתרגיל."); return; }
+  const videoUrl = $("#ex-new-video").value.trim();
   const lib = {
     id: newId("x"),
     name,
     hint: $("#ex-new-hint").value.trim(),
     mode: $("#ex-new-mode").value,
     defReps: 12, defWeight: 10, defSecs: 30,
+    demoQuery: `${name} exercise proper form`,
   };
+  if (videoUrl) lib.videoUrl = videoUrl;
   state.exercises.push(lib);
   const w = getWorkout(currentWorkoutDate);
   w.exList.push(lib.id);
@@ -1542,6 +1634,15 @@ $("#wt-load").addEventListener("click", () => {
       renderWorkout();
     });
     row.appendChild(body);
+    const edit = document.createElement("button");
+    edit.className = "btn small ghost";
+    edit.textContent = "✏️";
+    edit.addEventListener("click", (e) => {
+      e.stopPropagation();
+      $("#wt-modal").classList.add("hidden");
+      openTplEditor(tpl.id);
+    });
+    row.appendChild(edit);
     if (!tpl.id.startsWith("t-")) { // תבניות שהמשתמש יצר — אפשר למחוק
       const del = document.createElement("button");
       del.className = "del-set";
@@ -1707,6 +1808,286 @@ $("#rope-rounds").addEventListener("input", () => {
   const w = getWorkout(currentWorkoutDate);
   w.ropeRounds = parseInt($("#rope-rounds").value, 10) || 10;
   save();
+});
+
+/* ================== בנאי אימוני ריצה + ייצוא FIT לגרמין ================== */
+
+const HR_ZONES = () => (state.settings.hrZones || { 1: [93, 112], 2: [112, 130], 3: [130, 149], 4: [149, 167], 5: [167, 186] });
+const RWK_KINDS = { warmup: "חימום", active: "עבודה", rest: "התאוששות", cooldown: "שחרור" };
+const RWK_DURS = { time: "דקות", km: "ק״מ", open: "חופשי" };
+
+function rwkById(id) { return (state.runWorkouts || []).find((w) => w.id === id); }
+
+function rwkStepText(s, i) {
+  if (s.kind === "repeat") return `חזרה על צעדים ${s.from + 1}–${i} ×${s.reps}`;
+  const dur = s.dur === "open" ? "חופשי" : `${s.val} ${RWK_DURS[s.dur]}`;
+  const tgt = s.zone ? `Z${s.zone} (${HR_ZONES()[s.zone][0]}–${HR_ZONES()[s.zone][1]})` : "חופשי";
+  return `${RWK_KINDS[s.kind]} ${dur} @ ${tgt}`;
+}
+
+/* ---------- מקודד FIT (פורמט האימונים של Garmin) ---------- */
+const FIT_CRC_TABLE = [0x0000, 0xCC01, 0xD801, 0x1400, 0xF001, 0x3C00, 0x2800, 0xE401,
+  0xA001, 0x6C00, 0x7800, 0xB401, 0x5000, 0x9C01, 0x8801, 0x4400];
+function fitCrc(bytes, crc = 0) {
+  for (const b of bytes) {
+    let tmp = FIT_CRC_TABLE[crc & 0xF];
+    crc = (crc >> 4) & 0x0FFF;
+    crc = crc ^ tmp ^ FIT_CRC_TABLE[b & 0xF];
+    tmp = FIT_CRC_TABLE[crc & 0xF];
+    crc = (crc >> 4) & 0x0FFF;
+    crc = crc ^ tmp ^ FIT_CRC_TABLE[(b >> 4) & 0xF];
+  }
+  return crc;
+}
+function buildRunFit(w) {
+  const bytes = [];
+  const u8 = (v) => bytes.push(v & 0xFF);
+  const u16 = (v) => { bytes.push(v & 0xFF, (v >> 8) & 0xFF); };
+  const u32 = (v) => { bytes.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF); };
+  const str = (text, size) => {
+    let enc = new TextEncoder().encode(text);
+    if (enc.length > size - 1) {
+      let end = size - 1;
+      while (end > 0 && (enc[end] & 0xC0) === 0x80) end--; // לא חותכים תו UTF-8 באמצע
+      enc = enc.slice(0, end);
+    }
+    for (const b of enc) u8(b);
+    for (let i = enc.length; i < size; i++) u8(0);
+  };
+  const defn = (local, globalNum, fields) => {
+    u8(0x40 | local); u8(0); u8(0); u16(globalNum); u8(fields.length);
+    for (const [num, size, type] of fields) { u8(num); u8(size); u8(type); }
+  };
+  const INV = 0xFFFFFFFF;
+  // file_id
+  defn(0, 0, [[0, 1, 0x00], [1, 2, 0x84], [2, 2, 0x84], [3, 4, 0x8C], [4, 4, 0x86]]);
+  u8(0); u8(5); u16(255); u16(0); u32(Date.now() % 0xFFFFFF + 1); u32(Math.floor(Date.now() / 1000) - 631065600);
+  // workout
+  defn(1, 26, [[8, 48, 0x07], [4, 1, 0x00], [6, 2, 0x84]]);
+  u8(1); str(w.name, 48); u8(1); u16(w.steps.length);
+  // steps
+  defn(2, 27, [[254, 2, 0x84], [1, 1, 0x00], [2, 4, 0x86], [3, 1, 0x00], [4, 4, 0x86], [5, 4, 0x86], [6, 4, 0x86], [7, 1, 0x00]]);
+  const INT = { warmup: 2, active: 0, rest: 1, cooldown: 3 };
+  w.steps.forEach((s, i) => {
+    u8(2); u16(i);
+    if (s.kind === "repeat") {
+      u8(6); u32(s.from); u8(0xFF); u32(s.reps); u32(INV); u32(INV); u8(0);
+    } else {
+      if (s.dur === "time") { u8(0); u32(Math.round(s.val * 60 * 1000)); }
+      else if (s.dur === "km") { u8(1); u32(Math.round(s.val * 100000)); }
+      else { u8(5); u32(0); }
+      if (s.zone) {
+        const [lo, hi] = HR_ZONES()[s.zone];
+        u8(1); u32(0); u32(lo + 100); u32(hi + 100);
+      } else {
+        u8(2); u32(0); u32(INV); u32(INV);
+      }
+      u8(INT[s.kind] != null ? INT[s.kind] : 0);
+    }
+  });
+  const body = new Uint8Array(bytes);
+  // כותרת 14 בייט + CRC כותרת
+  const header = new Uint8Array(14);
+  const hv = new DataView(header.buffer);
+  hv.setUint8(0, 14); hv.setUint8(1, 0x10); hv.setUint16(2, 2194, true); hv.setUint32(4, body.length, true);
+  header.set(new TextEncoder().encode(".FIT"), 8);
+  hv.setUint16(12, fitCrc(header.slice(0, 12)), true);
+  const all = new Uint8Array(header.length + body.length + 2);
+  all.set(header, 0);
+  all.set(body, header.length);
+  const crc = fitCrc(all.slice(0, header.length + body.length));
+  new DataView(all.buffer).setUint16(header.length + body.length, crc, true);
+  return all;
+}
+function exportRunFit(w) {
+  const blob = new Blob([buildRunFit(w)], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = w.name.replace(/[^\w֐-׿a-zA-Z0-9 -]/g, "").replace(/\s+/g, "-") + ".fit";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+/* ---------- רשימת אימוני הריצה ---------- */
+function renderRunWorkouts() {
+  const wrap = $("#rwk-list");
+  wrap.innerHTML = "";
+  for (const w of state.runWorkouts || []) {
+    const row = document.createElement("div");
+    row.className = "food-item";
+    const summary = w.steps.map((s, i) => rwkStepText(s, i)).join(" ← ");
+    const body = document.createElement("div");
+    body.style.flex = "1";
+    body.innerHTML = `<div class="food-item-name">${escapeHtml(w.name)}</div><div class="rwk-summary">${escapeHtml(summary)}</div>`;
+    body.addEventListener("click", () => openRwkEditor(w.id));
+    const exportBtn = document.createElement("button");
+    exportBtn.className = "btn small";
+    exportBtn.textContent = "⬇️ FIT";
+    exportBtn.addEventListener("click", (e) => { e.stopPropagation(); exportRunFit(w); });
+    row.append(body, exportBtn);
+    wrap.appendChild(row);
+  }
+}
+
+/* ---------- עורך אימון ריצה ---------- */
+let editingRwk = null;
+function openRwkEditor(id) {
+  const existing = id ? rwkById(id) : null;
+  editingRwk = existing
+    ? JSON.parse(JSON.stringify(existing))
+    : { id: null, name: "", steps: [{ kind: "warmup", dur: "time", val: 10, zone: 2 }] };
+  $("#rwk-title").textContent = existing ? `עריכת ${existing.name}` : "אימון ריצה חדש";
+  $("#rwk-name").value = editingRwk.name;
+  $("#rwk-delete").classList.toggle("hidden", !existing);
+  renderRwkSteps();
+  $("#rwk-modal").classList.remove("hidden");
+}
+function renderRwkSteps() {
+  const wrap = $("#rwk-steps");
+  wrap.innerHTML = "";
+  editingRwk.steps.forEach((s, i) => {
+    if (!s._id) s._id = newId("st");
+    const row = document.createElement("div");
+    row.className = "rwk-step";
+    row.dataset.itemId = s._id;
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    const num = document.createElement("span");
+    num.className = "rwk-step-num";
+    num.textContent = i + 1;
+    row.append(handle, num);
+
+    const mkSel = (options, value, onChange) => {
+      const sel = document.createElement("select");
+      for (const [v, label] of options) {
+        const opt = document.createElement("option");
+        opt.value = v; opt.textContent = label;
+        if (String(value) === String(v)) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.addEventListener("change", () => onChange(sel.value));
+      return sel;
+    };
+    const mkNum = (value, onChange, step) => {
+      const inp = document.createElement("input");
+      inp.type = "number"; inp.min = 0; inp.step = step || 1; inp.inputMode = "decimal"; inp.value = value;
+      inp.addEventListener("input", () => onChange(parseFloat(inp.value) || 0));
+      return inp;
+    };
+
+    if (s.kind === "repeat") {
+      row.appendChild(document.createTextNode("🔁 חזור מצעד"));
+      row.appendChild(mkNum(s.from + 1, (v) => { s.from = Math.max(0, Math.round(v) - 1); }));
+      row.appendChild(document.createTextNode("×"));
+      row.appendChild(mkNum(s.reps, (v) => { s.reps = Math.max(1, Math.round(v)); }));
+    } else {
+      row.appendChild(mkSel(Object.entries(RWK_KINDS), s.kind, (v) => { s.kind = v; }));
+      row.appendChild(mkSel(Object.entries(RWK_DURS), s.dur, (v) => { s.dur = v; renderRwkSteps(); }));
+      if (s.dur !== "open") row.appendChild(mkNum(s.val, (v) => { s.val = v; }, s.dur === "km" ? 0.5 : 1));
+      row.appendChild(mkSel(
+        [["0", "ללא יעד"], ["1", "Z1"], ["2", "Z2"], ["3", "Z3"], ["4", "Z4"], ["5", "Z5"]],
+        s.zone || 0, (v) => { s.zone = parseInt(v, 10) || 0; }
+      ));
+    }
+    const del = document.createElement("button");
+    del.className = "del-set";
+    del.textContent = "✕";
+    del.addEventListener("click", () => { editingRwk.steps.splice(i, 1); renderRwkSteps(); });
+    row.appendChild(del);
+
+    enableDrag(handle, row, wrap, (orderIds) => {
+      editingRwk.steps.sort((a, b) => orderIds.indexOf(a._id) - orderIds.indexOf(b._id));
+      renderRwkSteps();
+    });
+    wrap.appendChild(row);
+  });
+}
+$("#rwk-add").addEventListener("click", () => openRwkEditor(null));
+$("#rwk-step-add").addEventListener("click", () => {
+  editingRwk.steps.push({ kind: "active", dur: "time", val: 3, zone: 4 });
+  renderRwkSteps();
+});
+$("#rwk-repeat-add").addEventListener("click", () => {
+  editingRwk.steps.push({ kind: "repeat", from: Math.max(0, editingRwk.steps.length - 2), reps: 3 });
+  renderRwkSteps();
+});
+$("#rwk-cancel").addEventListener("click", () => $("#rwk-modal").classList.add("hidden"));
+$("#rwk-delete").addEventListener("click", () => {
+  if (!confirm("למחוק את האימון?")) return;
+  state.runWorkouts = state.runWorkouts.filter((w) => w.id !== editingRwk.id);
+  save();
+  $("#rwk-modal").classList.add("hidden");
+  renderRunWorkouts();
+});
+$("#rwk-save").addEventListener("click", () => {
+  editingRwk.name = $("#rwk-name").value.trim();
+  if (!editingRwk.name) { alert("חסר שם לאימון."); return; }
+  if (!editingRwk.steps.length) { alert("אין צעדים באימון."); return; }
+  editingRwk.steps.forEach((s) => delete s._id);
+  if (!editingRwk.id) editingRwk.id = newId("rw");
+  const idx = state.runWorkouts.findIndex((w) => w.id === editingRwk.id);
+  if (idx >= 0) state.runWorkouts[idx] = editingRwk; else state.runWorkouts.push(editingRwk);
+  save();
+  $("#rwk-modal").classList.add("hidden");
+  renderRunWorkouts();
+});
+
+/* ---------- עורך תבניות אימון כוח ---------- */
+let editingTpl = null;
+function openTplEditor(id) {
+  editingTpl = JSON.parse(JSON.stringify(templateById(id)));
+  $("#tpl-name").value = editingTpl.name;
+  renderTplList();
+  $("#tpl-modal").classList.remove("hidden");
+}
+function renderTplList() {
+  const wrap = $("#tpl-list");
+  wrap.innerHTML = "";
+  editingTpl.exerciseIds.forEach((exId, i) => {
+    const lib = exLibById(exId);
+    const row = document.createElement("div");
+    row.className = "rwk-step";
+    row.dataset.itemId = exId + ":" + i;
+    const handle = document.createElement("span");
+    handle.className = "drag-handle";
+    handle.textContent = "≡";
+    const name = document.createElement("span");
+    name.className = "grow";
+    name.textContent = lib ? lib.name : exId;
+    const del = document.createElement("button");
+    del.className = "del-set";
+    del.textContent = "✕";
+    del.addEventListener("click", () => { editingTpl.exerciseIds.splice(i, 1); renderTplList(); });
+    row.append(handle, name, del);
+    enableDrag(handle, row, wrap, (orderIds) => {
+      editingTpl.exerciseIds = orderIds.map((k) => k.split(":")[0]);
+      renderTplList();
+    });
+    wrap.appendChild(row);
+  });
+  const sel = $("#tpl-ex-pick");
+  sel.innerHTML = "";
+  for (const lib of state.exercises) {
+    const opt = document.createElement("option");
+    opt.value = lib.id; opt.textContent = lib.name;
+    sel.appendChild(opt);
+  }
+}
+$("#tpl-ex-add").addEventListener("click", () => {
+  editingTpl.exerciseIds.push($("#tpl-ex-pick").value);
+  renderTplList();
+});
+$("#tpl-cancel").addEventListener("click", () => $("#tpl-modal").classList.add("hidden"));
+$("#tpl-save").addEventListener("click", () => {
+  const name = $("#tpl-name").value.trim();
+  if (!name) { alert("חסר שם."); return; }
+  editingTpl.name = name;
+  const idx = state.workoutTemplates.findIndex((t) => t.id === editingTpl.id);
+  state.workoutTemplates[idx] = editingTpl;
+  save();
+  $("#tpl-modal").classList.add("hidden");
 });
 
 /* ---------- ייצוא לוח שבועי ליומן (.ics) ---------- */
@@ -1890,6 +2271,7 @@ $$(".rest-btn").forEach((btn) => {
 /* ============================ מסך תכנון (גאנט) ============================ */
 
 const PLAN_WEEKS = 12;
+const PLAN_PAST_WEEKS = 4; // היסטוריה: מציגים גם שבועות שעברו — לצפייה ועריכה
 const PLAN_LANES = [
   { id: "strength", label: "💪 כוח" },
   { id: "run", label: "🏃 ריצה" },
@@ -1905,8 +2287,8 @@ function renderPlan() {
   if (!state.plan) state.plan = { nodes: [] };
   const gantt = $("#gantt");
   gantt.innerHTML = "";
-  const start = weekKeyOf(new Date());
-  const totalDays = PLAN_WEEKS * 7;
+  const start = addDays(weekKeyOf(new Date()), -PLAN_PAST_WEEKS * 7);
+  const totalDays = (PLAN_PAST_WEEKS + PLAN_WEEKS) * 7;
   const today = todayIso();
   const bodyByDate = {};
   for (const e of state.body || []) bodyByDate[e.date] = e;
@@ -1922,7 +2304,7 @@ function renderPlan() {
     const dateIso = addDays(start, i);
     const wd = fromIso(dateIso).getDay();
     const cell = document.createElement("div");
-    cell.className = "gantt-cell head" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "");
+    cell.className = "gantt-cell head" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "") + (dateIso < today ? " past" : "");
     cell.innerHTML = `<span>${DAY_SHORT[wd]}</span><span class="day-num">${shortDate(dateIso)}</span>`;
     head.appendChild(cell);
   }
@@ -1940,7 +2322,7 @@ function renderPlan() {
       const dateIso = addDays(start, i);
       const wd = fromIso(dateIso).getDay();
       const cell = document.createElement("div");
-      cell.className = "gantt-cell" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "");
+      cell.className = "gantt-cell" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "") + (dateIso < today ? " past" : "");
 
       if (lane.id === "body") {
         const e = bodyByDate[dateIso];
@@ -1984,9 +2366,18 @@ function renderPlan() {
     gantt.appendChild(row);
   }
 
-  // גלילה כך שהיום נראה (RTL — היום בקצה הימני, גוללים לימין)
+  // גלילה כך שהיום צמוד לקצה הימני (RTL) — העבר נגלל החוצה ימינה, העתיד נפרש שמאלה
   const wrap = gantt.parentElement;
-  wrap.scrollLeft = wrap.scrollWidth; // RTL: הקצה ההתחלתי
+  const todayCell = gantt.querySelector(".gantt-cell.head.today");
+  if (todayCell) {
+    const wr = wrap.getBoundingClientRect();
+    const tr = todayCell.getBoundingClientRect();
+    const label = gantt.querySelector(".gantt-label");
+    const lw = label ? label.getBoundingClientRect().width : 0; // התווית דביקה בימין ומכסה את הקצה
+    wrap.scrollLeft += tr.right - (wr.right - lw - 6);
+  } else {
+    wrap.scrollLeft = wrap.scrollWidth;
+  }
 }
 
 /* גרירת צומת בין תאים: תזוזה מעל 8px = גרירה (עם הדגשת תא היעד), אחרת עריכה */
@@ -2054,6 +2445,14 @@ $("#plan-template").addEventListener("change", () => {
   if (tpl && !$("#plan-label").value.trim()) $("#plan-label").value = tpl.name;
 });
 $("#plan-cancel").addEventListener("click", () => $("#plan-modal").classList.add("hidden"));
+$("#plan-open-day").addEventListener("click", () => {
+  const date = $("#plan-date").value;
+  if (!date) { alert("חסר תאריך."); return; }
+  $("#plan-modal").classList.add("hidden");
+  currentWorkoutDate = date;
+  $('.navbtn[data-screen="workout"]').click(); // מעבר למסך האימון של אותו יום — כולל ימים שכבר עברו
+  window.scrollTo({ top: 0 });
+});
 $("#plan-delete").addEventListener("click", () => {
   if (!confirm("להסיר את הצומת מהתכנון?")) return;
   state.plan.nodes = state.plan.nodes.filter((n) => n.id !== editingPlanNodeId);
