@@ -568,6 +568,25 @@ if (state.seedV === 13) {
   save();
 }
 
+/* שדרוג 15: תכנון גאנט — זריעת התוכנית ריצה 12 שבועות + אבני דרך */
+if (!state.plan) state.plan = { nodes: [] };
+if (state.seedV === 14) {
+  const seedNodes = [
+    { lane: "run", date: "2026-09-23", label: "אינטרוולים 3×3 Z4" },
+    { lane: "run", date: "2026-09-30", label: "טמפו 15ד Z4" },
+    { lane: "milestone", date: "2026-10-02", label: "🧪 מבחן 5K" },
+    { lane: "milestone", date: "2026-11-08", label: "מתח: 7 מלאים" },
+    { lane: "milestone", date: "2026-12-04", label: "🎯 10K סאב-60" },
+  ];
+  for (const n of seedNodes) {
+    if (!state.plan.nodes.some((x) => x.date === n.date && x.label === n.label)) {
+      state.plan.nodes.push({ id: newId("pl"), ...n });
+    }
+  }
+  state.seedV = 15;
+  save();
+}
+
 /* שדרוג 12: מסך אימונים מודולרי — מאגר תרגילים, מאגר אימונים,
    והמרת כל הרישומים הקיימים למבנה המאוחד w.ex + w.exList */
 if (!state.exercises) state.exercises = JSON.parse(JSON.stringify(DEFAULT_EXLIB));
@@ -706,7 +725,16 @@ function freshSetsFor(exId, dateIso) {
   if (prev) return prev.map((s) => ({ ...s, done: false }));
   return defaultSets(exLibById(exId));
 }
+function planNodeFor(dateIso) {
+  return state.plan && state.plan.nodes.find((n) => n.date === dateIso && n.templateId);
+}
 function dayTemplate(dateIso) {
+  // צומת תכנון עם אימון מהמאגר גובר על ברירת המחדל של היום
+  const node = planNodeFor(dateIso);
+  if (node) {
+    const tpl = templateById(node.templateId);
+    if (tpl) return tpl;
+  }
   const wd = fromIso(dateIso).getDay();
   return templateById(STRENGTH_DAYS.includes(wd) ? "t-strength" : "t-run") || state.workoutTemplates[0];
 }
@@ -764,6 +792,7 @@ $$(".navbtn").forEach((btn) => {
     $("#screen-" + target).classList.remove("hidden");
     if (target === "menu") renderMenu();
     if (target === "workout") renderWorkout();
+    if (target === "plan") renderPlan();
     if (target === "shopping") renderShopping();
     if (target === "food") renderFood();
     if (target === "progress") renderProgress();
@@ -1858,6 +1887,161 @@ $$(".rest-btn").forEach((btn) => {
   });
 });
 
+/* ============================ מסך תכנון (גאנט) ============================ */
+
+const PLAN_WEEKS = 12;
+const PLAN_LANES = [
+  { id: "strength", label: "💪 כוח" },
+  { id: "run", label: "🏃 ריצה" },
+  { id: "milestone", label: "🎯 יעדים" },
+  { id: "body", label: "⚖️ גוף" },
+];
+
+function planNodesAt(lane, dateIso) {
+  return state.plan.nodes.filter((n) => n.lane === lane && n.date === dateIso);
+}
+
+function renderPlan() {
+  if (!state.plan) state.plan = { nodes: [] };
+  const gantt = $("#gantt");
+  gantt.innerHTML = "";
+  const start = weekKeyOf(new Date());
+  const totalDays = PLAN_WEEKS * 7;
+  const today = todayIso();
+  const bodyByDate = {};
+  for (const e of state.body || []) bodyByDate[e.date] = e;
+
+  // שורת כותרת: יום ותאריך
+  const head = document.createElement("div");
+  head.className = "gantt-row";
+  const headLabel = document.createElement("div");
+  headLabel.className = "gantt-label";
+  headLabel.textContent = "";
+  head.appendChild(headLabel);
+  for (let i = 0; i < totalDays; i++) {
+    const dateIso = addDays(start, i);
+    const wd = fromIso(dateIso).getDay();
+    const cell = document.createElement("div");
+    cell.className = "gantt-cell head" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "");
+    cell.innerHTML = `<span>${DAY_SHORT[wd]}</span><span class="day-num">${shortDate(dateIso)}</span>`;
+    head.appendChild(cell);
+  }
+  gantt.appendChild(head);
+
+  for (const lane of PLAN_LANES) {
+    const row = document.createElement("div");
+    row.className = "gantt-row";
+    const label = document.createElement("div");
+    label.className = "gantt-label";
+    label.textContent = lane.label;
+    row.appendChild(label);
+
+    for (let i = 0; i < totalDays; i++) {
+      const dateIso = addDays(start, i);
+      const wd = fromIso(dateIso).getDay();
+      const cell = document.createElement("div");
+      cell.className = "gantt-cell" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "");
+
+      if (lane.id === "body") {
+        const e = bodyByDate[dateIso];
+        if (e) {
+          const v = document.createElement("span");
+          v.className = "gantt-val";
+          v.textContent = e.weight ? Math.round(e.weight) : "•";
+          cell.appendChild(v);
+        }
+      } else {
+        // שכבה אוטומטית: מה מתוכנן לפי היום בשבוע + מה בוצע בפועל
+        const w = state.workouts[dateIso];
+        const isLaneDay = lane.id === "strength" ? STRENGTH_DAYS.includes(wd)
+          : lane.id === "run" ? RUN_DAYS.includes(wd) : false;
+        if (lane.id === "run" && w && w.run && w.run.km > 0) {
+          const v = document.createElement("span");
+          v.className = "gantt-val";
+          v.textContent = `${w.run.km}ק`;
+          cell.appendChild(v);
+        } else if (isLaneDay) {
+          const dot = document.createElement("span");
+          dot.className = "gantt-dot" + (w && w.done ? " done" : "");
+          cell.appendChild(dot);
+        }
+        // צמתים משובצים
+        for (const node of planNodesAt(lane.id, dateIso)) {
+          const chip = document.createElement("span");
+          chip.className = "gantt-node" + (lane.id === "milestone" ? " milestone" : "") +
+            (w && w.done ? " done-node" : "");
+          chip.textContent = node.label;
+          chip.title = node.label;
+          chip.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openPlanEditor(node.id, dateIso, lane.id);
+          });
+          cell.appendChild(chip);
+        }
+        cell.addEventListener("click", () => openPlanEditor(null, dateIso, lane.id));
+      }
+      row.appendChild(cell);
+    }
+    gantt.appendChild(row);
+  }
+
+  // גלילה כך שהיום נראה (RTL — היום בקצה הימני, גוללים לימין)
+  const wrap = gantt.parentElement;
+  wrap.scrollLeft = wrap.scrollWidth; // RTL: הקצה ההתחלתי
+}
+
+let editingPlanNodeId = null;
+function openPlanEditor(nodeId, dateIso, lane) {
+  editingPlanNodeId = nodeId;
+  const node = nodeId ? state.plan.nodes.find((n) => n.id === nodeId) : null;
+  $("#plan-modal-title").textContent = node ? "עריכת צומת" : "שיבוץ בתכנון";
+  $("#plan-date").value = node ? node.date : dateIso;
+  $("#plan-lane").value = node ? node.lane : lane;
+  const sel = $("#plan-template");
+  sel.innerHTML = '<option value="">—</option>';
+  for (const tpl of state.workoutTemplates) {
+    const opt = document.createElement("option");
+    opt.value = tpl.id;
+    opt.textContent = tpl.name;
+    if (node && node.templateId === tpl.id) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  $("#plan-label").value = node ? node.label : "";
+  $("#plan-delete").classList.toggle("hidden", !node);
+  $("#plan-modal").classList.remove("hidden");
+}
+$("#plan-template").addEventListener("change", () => {
+  const tpl = templateById($("#plan-template").value);
+  if (tpl && !$("#plan-label").value.trim()) $("#plan-label").value = tpl.name;
+});
+$("#plan-cancel").addEventListener("click", () => $("#plan-modal").classList.add("hidden"));
+$("#plan-delete").addEventListener("click", () => {
+  if (!confirm("להסיר את הצומת מהתכנון?")) return;
+  state.plan.nodes = state.plan.nodes.filter((n) => n.id !== editingPlanNodeId);
+  save();
+  $("#plan-modal").classList.add("hidden");
+  renderPlan();
+});
+$("#plan-save").addEventListener("click", () => {
+  const label = $("#plan-label").value.trim();
+  const date = $("#plan-date").value;
+  if (!label || !date) { alert("חסרים תווית או תאריך."); return; }
+  const data = {
+    date,
+    lane: $("#plan-lane").value,
+    templateId: $("#plan-template").value || undefined,
+    label,
+  };
+  if (editingPlanNodeId) {
+    Object.assign(state.plan.nodes.find((n) => n.id === editingPlanNodeId), data);
+  } else {
+    state.plan.nodes.push({ id: newId("pl"), ...data });
+  }
+  save();
+  $("#plan-modal").classList.add("hidden");
+  renderPlan();
+});
+
 /* ============================ מסך קניות ============================ */
 
 function ensureShopping(weekKey) {
@@ -2301,9 +2485,17 @@ if (!state.body) state.body = []; // [{date, weight, waist}]
 function renderBody() {
   const entries = [...state.body].sort((a, b) => (a.date < b.date ? -1 : 1));
   const last = entries[entries.length - 1];
-  $("#body-last").textContent = last
-    ? `מדידה אחרונה: ${shortDate(last.date)} — ${last.weight} ק״ג${last.waist ? `, מותן ${last.waist} ס״מ` : ""}`
-    : "עוד אין מדידות — שקילה פעם בשבוע, באותה שעה, מספיקה.";
+  if (!last) {
+    $("#body-last").textContent = "עוד אין מדידות — שקילה פעם בשבוע, באותה שעה, מספיקה.";
+  } else {
+    const parts = [];
+    if (last.weight) parts.push(`${last.weight} ק״ג`);
+    if (last.waist) parts.push(`מותן ${last.waist}`);
+    if (last.hr) parts.push(`דופק ${last.hr}`);
+    if (last.sys && last.dia) parts.push(`ל״ד ${last.sys}/${last.dia}`);
+    if (last.spo2) parts.push(`SpO₂ ${last.spo2}%`);
+    $("#body-last").textContent = `מדידה אחרונה: ${shortDate(last.date)} — ${parts.join(", ")}`;
+  }
   drawBodyChart();
 }
 
@@ -2318,20 +2510,25 @@ function drawBodyChart() {
 }
 
 $("#body-save").addEventListener("click", () => {
-  const weight = parseFloat($("#body-weight").value) || 0;
-  const waist = parseFloat($("#body-waist").value) || 0;
-  if (!weight && !waist) { alert("הזן לפחות משקל או מותן."); return; }
-  const today = todayIso();
-  const existing = state.body.find((e) => e.date === today);
-  if (existing) {
-    if (weight) existing.weight = weight;
-    if (waist) existing.waist = waist;
-  } else {
-    state.body.push({ date: today, weight, waist });
+  const fields = {
+    weight: parseFloat($("#body-weight").value) || 0,
+    waist: parseFloat($("#body-waist").value) || 0,
+    hr: parseFloat($("#body-hr").value) || 0,
+    sys: parseFloat($("#body-sys").value) || 0,
+    dia: parseFloat($("#body-dia").value) || 0,
+    spo2: parseFloat($("#body-spo2").value) || 0,
+  };
+  if (!Object.values(fields).some((v) => v > 0)) { alert("הזן לפחות מדד אחד."); return; }
+  if ((fields.sys && !fields.dia) || (!fields.sys && fields.dia)) {
+    alert("לחץ דם נרשם בזוג — סיסטולי ודיאסטולי יחד.");
+    return;
   }
+  const today = todayIso();
+  let entry = state.body.find((e) => e.date === today);
+  if (!entry) { entry = { date: today }; state.body.push(entry); }
+  for (const [k, v] of Object.entries(fields)) if (v > 0) entry[k] = v;
   save();
-  $("#body-weight").value = "";
-  $("#body-waist").value = "";
+  ["#body-weight", "#body-waist", "#body-hr", "#body-sys", "#body-dia", "#body-spo2"].forEach((s) => { $(s).value = ""; });
   renderBody();
 });
 $("#body-metric").addEventListener("change", drawBodyChart);

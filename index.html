@@ -185,6 +185,21 @@
     </div>
   </section>
 
+  <!-- ===== מסך תכנון (גאנט) ===== -->
+  <section id="screen-plan" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>תכנון אימונים</h1>
+        <div class="subtitle">גאנט 12 שבועות · הקש על תא לשיבוץ, על צומת לעריכה</div>
+      </div>
+    </header>
+    <div class="gantt-wrap">
+      <div id="gantt"></div>
+    </div>
+    <p class="footnote">💪 כוח · 🏃 ריצה · 🎯 יעדים · נקודה ירוקה = אימון שבוצע · שורת ⚖️ מציגה את המדידות שנרשמו.
+    צומת עם אימון מהמאגר קובע מה ייפתח בלוג באותו יום.</p>
+  </section>
+
   <!-- ===== מסך קניות ===== -->
   <section id="screen-shopping" class="screen hidden">
     <header class="topbar">
@@ -248,7 +263,13 @@
       <div class="card-head"><h2>⚖️ מדדי גוף</h2></div>
       <div class="row gap">
         <label class="grow">משקל (ק״ג)<input id="body-weight" type="number" step="0.1" min="0" inputmode="decimal"></label>
-        <label class="grow">מותן (ס״מ)<input id="body-waist" type="number" step="0.5" min="0" inputmode="decimal" placeholder="לא חובה"></label>
+        <label class="grow">מותן (ס״מ)<input id="body-waist" type="number" step="0.5" min="0" inputmode="decimal" placeholder="—"></label>
+      </div>
+      <div class="row gap" style="margin-top:6px;">
+        <label class="grow">דופק מנוחה<input id="body-hr" type="number" min="0" inputmode="numeric" placeholder="—"></label>
+        <label class="grow">ל״ד סיסטולי<input id="body-sys" type="number" min="0" inputmode="numeric" placeholder="—"></label>
+        <label class="grow">דיאסטולי<input id="body-dia" type="number" min="0" inputmode="numeric" placeholder="—"></label>
+        <label class="grow">SpO₂ %<input id="body-spo2" type="number" min="0" max="100" inputmode="numeric" placeholder="—"></label>
       </div>
       <button id="body-save" class="btn primary" style="width:100%; margin-top:8px;">שמור מדידה להיום</button>
       <div id="body-last" class="hint" style="margin-top:8px;"></div>
@@ -257,6 +278,10 @@
         <select id="body-metric">
           <option value="weight">משקל (ק״ג)</option>
           <option value="waist">מותן (ס״מ)</option>
+          <option value="hr">דופק מנוחה</option>
+          <option value="sys">ל״ד סיסטולי</option>
+          <option value="dia">ל״ד דיאסטולי</option>
+          <option value="spo2">SpO₂ (%)</option>
         </select>
       </div>
       <canvas id="chart-body" height="160"></canvas>
@@ -315,6 +340,7 @@
 <nav class="bottomnav">
   <button data-screen="menu" class="navbtn active"><span>🍽️</span>תפריט</button>
   <button data-screen="workout" class="navbtn"><span>🏋️</span>אימונים</button>
+  <button data-screen="plan" class="navbtn"><span>🗓️</span>תכנון</button>
   <button data-screen="shopping" class="navbtn"><span>🛒</span>קניות</button>
   <button data-screen="food" class="navbtn"><span>🥗</span>מזון</button>
   <button data-screen="progress" class="navbtn"><span>📈</span>התקדמות</button>
@@ -377,6 +403,30 @@
       <button id="meal-save" class="btn primary grow">בדוק ושמור</button>
       <button id="meal-delete" class="btn ghost danger hidden">🗑️</button>
       <button id="meal-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל צומת תכנון -->
+<div id="plan-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="plan-modal-title">שיבוץ בתכנון</h2>
+    <div class="row gap">
+      <label class="grow">תאריך<input id="plan-date" type="date"></label>
+      <label class="grow">מסלול
+        <select id="plan-lane">
+          <option value="strength">💪 כוח</option>
+          <option value="run">🏃 ריצה</option>
+          <option value="milestone">🎯 יעד / אבן דרך</option>
+        </select>
+      </label>
+    </div>
+    <label>אימון מהמאגר (לא חובה — ייפתח בלוג באותו יום)<select id="plan-template"></select></label>
+    <label>תווית<input id="plan-label" type="text" placeholder="טמפו 15ד / מבחן 5K / סאב-60..."></label>
+    <div class="row gap">
+      <button id="plan-save" class="btn primary grow">שמור</button>
+      <button id="plan-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="plan-cancel" class="btn ghost">ביטול</button>
     </div>
   </div>
 </div>
