@@ -1307,12 +1307,13 @@ function renderWorkout() {
   renderWorkoutChips();
   exTimerReset(); // מעבר יום לא משאיר טיימר רץ שיישמר ליום הלא נכון
   const wd = fromIso(currentWorkoutDate).getDay();
-  const isRest = wd === REST_DAY;
+  const isRestDay = wd === REST_DAY;
   const isStrength = STRENGTH_DAYS.includes(wd);
+  // שבת = מנוחה, אלא אם נרשם אימון ספונטני ("בכל זאת התאמנתי")
+  const existing = state.workouts[currentWorkoutDate];
+  const isRest = isRestDay && !(existing && existing.logAnyway);
 
-  // שבת: מנוחה מלאה — אין רישום
   $("#card-rest").classList.toggle("hidden", !isRest);
-  $("#card-run").classList.toggle("hidden", isRest || isStrength);
   $("#card-rope").classList.toggle("hidden", isRest);
   $("#card-exercises").classList.toggle("hidden", isRest);
   $("#card-timer").classList.toggle("hidden", isRest);
@@ -1320,15 +1321,25 @@ function renderWorkout() {
 
   if (isRest) {
     $("#workout-day-type").textContent = "😴 מנוחה מלאה";
+    $("#card-run").classList.add("hidden");
+    $("#btn-add-run").classList.add("hidden");
     return;
   }
 
-  $("#workout-day-type").textContent = isStrength
-    ? "💪 אימון כוח: חבל (חימום) ← מתח ← משקולות"
-    : "🏃 ריצה (או חבל אם לא רצת) + ליבה";
-  $("#rope-role").textContent = isStrength ? "· חימום 5–8 דק׳" : "· אם לא רצת";
-
   const w = getWorkout(currentWorkoutDate);
+
+  // ריצה אפשרית בכל יום: בימי ריצה תמיד מוצגת, בשאר הימים נוספת בלחיצה
+  // (או מוצגת אוטומטית אם כבר נרשמה ריצה)
+  const showRun = (!isStrength && !isRestDay) || w.run.km > 0 || w.run.minutes > 0 || !!w.showRun;
+  $("#card-run").classList.toggle("hidden", !showRun);
+  $("#btn-add-run").classList.toggle("hidden", showRun);
+
+  $("#workout-day-type").textContent = isRestDay
+    ? "🏋️ אימון ספונטני בשבת — נרשם רגיל"
+    : isStrength
+      ? "💪 אימון כוח: חבל (חימום) ← מתח ← משקולות"
+      : "🏃 ריצה (או חבל אם לא רצת) + ליבה";
+  $("#rope-role").textContent = isStrength ? "· חימום 5–8 דק׳" : "· אם לא רצת";
 
   renderRope(w);
   renderRun(w);
@@ -1353,6 +1364,19 @@ function renderRun(w) {
   $("#run-minutes").value = w.run.minutes || "";
   $("#run-pace").textContent = paceText(w.run.km, w.run.minutes);
 }
+$("#btn-add-run").addEventListener("click", () => {
+  const w = getWorkout(currentWorkoutDate);
+  w.showRun = true;
+  save();
+  renderWorkout();
+});
+$("#btn-rest-log").addEventListener("click", () => {
+  const w = getWorkout(currentWorkoutDate);
+  if (!w.logAnyway && !w.done) { w.exList = []; w.ex = {}; } // יום חופשי מתחיל ריק — מוסיפים רק מה שבאמת בוצע
+  w.logAnyway = true;
+  save();
+  renderWorkout();
+});
 $("#run-km").addEventListener("input", () => {
   const w = getWorkout(currentWorkoutDate);
   w.run.km = parseFloat($("#run-km").value) || 0;
