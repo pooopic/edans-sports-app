@@ -2325,7 +2325,9 @@ const PLAN_LANES = [
 ];
 
 function planNodesAt(lane, dateIso) {
-  return state.plan.nodes.filter((n) => n.lane === lane && n.date === dateIso);
+  return state.plan.nodes
+    .filter((n) => n.lane === lane && n.date === dateIso)
+    .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
 }
 
 function renderPlan() {
@@ -2351,6 +2353,13 @@ function renderPlan() {
     const cell = document.createElement("div");
     cell.className = "gantt-cell head" + (dateIso === today ? " today" : "") + (wd === 0 ? " weekstart" : "") + (dateIso < today ? " past" : "");
     cell.innerHTML = `<span>${DAY_SHORT[wd]}</span><span class="day-num">${shortDate(dateIso)}</span>`;
+    if (state.plan.notes && state.plan.notes[dateIso]) {
+      cell.innerHTML += '<span class="sched-note-mark">📝</span>';
+      cell.title = state.plan.notes[dateIso];
+    } else {
+      cell.title = "סדר יום, הסבר והערות";
+    }
+    cell.addEventListener("click", () => openDaySchedule(dateIso));
     head.appendChild(cell);
   }
   gantt.appendChild(head);
@@ -2397,10 +2406,16 @@ function renderPlan() {
         // צמתים משובצים — גרירה מזיזה, הקשה קצרה עורכת
         for (const node of planNodesAt(lane.id, dateIso)) {
           const chip = document.createElement("span");
-          chip.className = "gantt-node" + (lane.id === "milestone" ? " milestone" : "") +
+          chip.className = "gantt-node lane-" + lane.id + (lane.id === "milestone" ? " milestone" : "") +
             (w && w.done ? " done-node" : "");
-          chip.textContent = node.label;
-          chip.title = node.label + " — גרור להזזה, הקש לעריכה";
+          if (node.time) {
+            const t = document.createElement("span");
+            t.className = "node-time";
+            t.textContent = node.time + " ";
+            chip.appendChild(t);
+          }
+          chip.appendChild(document.createTextNode(node.label));
+          chip.title = (node.time ? node.time + " · " : "") + node.label + " — גרור להזזה, הקש לעריכה";
           makeNodeDraggable(chip, node);
           cell.appendChild(chip);
         }
@@ -2410,6 +2425,8 @@ function renderPlan() {
     }
     gantt.appendChild(row);
   }
+
+  drawPlanEdges(gantt);
 
   // גלילה כך שהיום צמוד לקצה הימני (RTL) — העבר נגלל החוצה ימינה, העתיד נפרש שמאלה
   const wrap = gantt.parentElement;
@@ -2423,6 +2440,53 @@ function renderPlan() {
   } else {
     wrap.scrollLeft = wrap.scrollWidth;
   }
+}
+
+/* קווי חיבור בין צמתים עוקבים באותו מסלול — כמו בתרשים זרימה:
+   רואים מה מוביל למה (אינטרוולים ← טמפו ← מבחן). מצויר כ-SVG מעל הרשת. */
+function drawPlanEdges(gantt) {
+  const old = gantt.querySelector(".plan-edges");
+  if (old) old.remove();
+  const firstRow = gantt.querySelector(".gantt-row");
+  if (!firstRow) return;
+  const NS = "http://www.w3.org/2000/svg";
+  const gr = gantt.getBoundingClientRect();
+  const rowR = firstRow.getBoundingClientRect(); // השורות רחבות מה-wrap — הרוחב האמיתי נמדד מהשורה
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "plan-edges");
+  svg.setAttribute("width", rowR.width);
+  svg.setAttribute("height", gr.height);
+  svg.style.right = "0";
+  const colors = { run: "#38b6ff", strength: "#f2635c", food: "#4cd08a", milestone: "#e8c35a" };
+  const ox = rowR.left, oy = gr.top;
+  const diamond = (x, y, color) => {
+    const d = document.createElementNS(NS, "path");
+    d.setAttribute("d", `M ${x} ${y - 3.5} L ${x + 3.5} ${y} L ${x} ${y + 3.5} L ${x - 3.5} ${y} Z`);
+    d.setAttribute("fill", "#0e1116");
+    d.setAttribute("stroke", color);
+    d.setAttribute("stroke-width", "1.5");
+    svg.appendChild(d);
+  };
+  for (const lane of ["strength", "run", "food", "milestone"]) {
+    const chips = [...gantt.querySelectorAll(`.gantt-cell[data-lane="${lane}"] .gantt-node`)]
+      .sort((a, b) => a.closest(".gantt-cell").dataset.date.localeCompare(b.closest(".gantt-cell").dataset.date));
+    for (let i = 0; i + 1 < chips.length; i++) {
+      const r1 = chips[i].getBoundingClientRect(), r2 = chips[i + 1].getBoundingClientRect();
+      // RTL: המוקדם מימין — מחברים את הצלע השמאלית שלו לצלע הימנית של הבא
+      const x1 = r1.left - ox, y1 = r1.top - oy + r1.height / 2;
+      const x2 = r2.right - ox, y2 = r2.top - oy + r2.height / 2;
+      const line = document.createElementNS(NS, "line");
+      line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+      line.setAttribute("stroke", colors[lane] || "#666");
+      line.setAttribute("stroke-width", "2");
+      line.setAttribute("opacity", "0.75");
+      svg.appendChild(line);
+      diamond(x1, y1, colors[lane]);
+      diamond(x2, y2, colors[lane]);
+    }
+  }
+  gantt.appendChild(svg);
 }
 
 /* גרירת צומת בין תאים: תזוזה מעל 8px = גרירה (עם הדגשת תא היעד), אחרת עריכה */
@@ -2465,6 +2529,115 @@ function makeNodeDraggable(chip, node) {
   });
 }
 
+/* ---- סדר יום: לחיצה על תאריך בכותרת הגאנט מציגה את היום עם שעות ---- */
+function addMinutes(hhmm, delta) {
+  const [h, m] = (hhmm || "07:00").split(":").map(Number);
+  const t = ((h * 60 + m + delta) % 1440 + 1440) % 1440;
+  return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0");
+}
+/* הסבר אוטומטי ליום: מה הוא מקדם ולמה — נגזר מהמבנה, מהתכנון ומהתפריט */
+function dayInsight(dateIso) {
+  const wd = fromIso(dateIso).getDay();
+  const parts = [];
+  const runNode = state.plan.nodes.find((n) => n.lane === "run" && n.date === dateIso);
+  const label = runNode ? runNode.label : "";
+  if (wd === REST_DAY && !planNodeFor(dateIso)) {
+    parts.push("😴 מנוחה מלאה — כאן השרירים נבנים בפועל; שינה טובה שווה אימון.");
+  } else if (STRENGTH_DAYS.includes(wd)) {
+    const tpl = dayTemplate(dateIso);
+    parts.push(`💪 ${tpl ? tpl.name : "כוח"}: מתח + משקולות — מקדם את יעד המתח (7 חזרות מלאות). חוק המשתנה האחד: מוסיפים רק דבר אחד לעומת האימון הקודם.`);
+  } else if (RUN_DAYS.includes(wd)) {
+    if (/אינטרוול/.test(label)) parts.push("🏃 אינטרוולים: מעלים VO2max ומהירות — הצעד המרכזי בדרך ל-10K מהיר. קשה, קצר, שווה.");
+    else if (/טמפו/.test(label)) parts.push("🏃 טמפו: מלמד את הגוף להחזיק קצב מירוץ לאורך זמן — הגשר בין בסיס למהירות.");
+    else if (/מבחן|10K|5K/i.test(label)) parts.push("🎯 יום מבחן: מודדים התקדמות ומכיילים מחדש את אזורי הקצב.");
+    else parts.push("🏃 ריצה קלה Z2 + ליבה: בונה בסיס אירובי בלי שחיקה; הליבה מייצבת את הריצה ואת הגב.");
+  }
+  if (wd === 0) parts.push("⚖️ ראשון = מדידה שבועית לפני האימון — מגמה חשובה יותר מכל מדידה בודדת.");
+  const wk = weekKeyOf(fromIso(dateIso));
+  // שבוע עתידי שטרם נפתח בתפריט — נוצר מהתבנית (כמו בניווט בתפריט); עבר לא נוצר רטרואקטיבית
+  const week = wk >= weekKeyOf(new Date()) ? ensureWeek(wk) : state.weeks[wk];
+  const day = week && week.days[wd];
+  if (day) {
+    parts.push(`🍽️ תזונה: מתוכננים ~${day.protein || 0} ג׳ חלבון (יעד ${proteinMin()}–${proteinMax()})${day.fast ? " · צום 16:8" : ""}.`);
+  }
+  return parts;
+}
+
+let schedDate = null;
+function openDaySchedule(dateIso) {
+  schedDate = dateIso;
+  const wd = fromIso(dateIso).getDay();
+  $("#sched-title").textContent = `יום ${DAY_NAMES[wd]} · ${shortDate(dateIso)}`;
+  const wt = state.settings.workoutTime || "07:00";
+  const dur = state.settings.workoutDur || 45;
+  const timed = [];
+  const untimed = [];
+
+  // מדידות — לפי תזכורות היומן (לפני האימון של ראשון)
+  if (wd === 0) {
+    if (parseInt(dateIso.slice(8), 10) <= 7) timed.push({ t: addMinutes(wt, -15), text: "📸 תמונות התקדמות (חודשי)" });
+    timed.push({ t: addMinutes(wt, -10), text: "⚖️ מדידה שבועית — משקל, מותן, דופק, לחץ דם" });
+  }
+
+  // האימון של היום (שבת = מנוחה, אלא אם שובץ אימון בתכנון)
+  const planNode = planNodeFor(dateIso);
+  if (wd !== REST_DAY || planNode) {
+    const tpl = dayTemplate(dateIso);
+    const icon = STRENGTH_DAYS.includes(wd) ? "💪" : "🏃";
+    timed.push({ t: wt, end: addMinutes(wt, dur), text: `${icon} אימון: ${tpl ? tpl.name : ""}` });
+  } else {
+    untimed.push({ text: "😴 שבת — מנוחה מלאה" });
+  }
+
+  // צמתים מהתכנון של אותו יום
+  for (const n of (state.plan ? state.plan.nodes : []).filter((n) => n.date === dateIso)) {
+    if (n.templateId && planNode && n.id === planNode.id) continue; // כבר מיוצג כאימון של היום
+    const icon = { food: "🍽️", milestone: "🎯", run: "🏃", strength: "💪" }[n.lane] || "📌";
+    (n.time ? timed : untimed).push({ t: n.time, text: `${icon} ${n.label}` });
+  }
+
+  // הארוחות מהתפריט של אותו יום (בלי שעות — לפי סדר היום בתפריט)
+  const week = state.weeks[weekKeyOf(fromIso(dateIso))];
+  const day = week && week.days[wd];
+  for (const it of (day && day.items) || []) {
+    if (it.fromPlan) continue; // כבר מופיע כצומת תכנון
+    untimed.push({ text: `🍽️ ${it.label}${it.text ? ": " + it.text : ""}${it.protein != null ? ` (${it.protein} ג׳)` : ""}` });
+  }
+
+  timed.sort((a, b) => a.t.localeCompare(b.t));
+  const listEl = $("#sched-list");
+  listEl.innerHTML = "";
+  const addRow = (timeText, text, noTime) => {
+    const row = document.createElement("div");
+    row.className = "sched-row";
+    row.innerHTML = `<span class="sched-time${noTime ? " none" : ""}">${timeText}</span><span>${escapeHtml(text)}</span>`;
+    listEl.appendChild(row);
+  };
+  for (const r of timed) addRow(r.end ? `${r.t}–${r.end}` : r.t, r.text);
+  for (const r of untimed) addRow("—", r.text, true);
+  if (!timed.length && !untimed.length) listEl.innerHTML = '<p class="hint">אין כלום ביום הזה.</p>';
+  $("#sched-insight").innerHTML = dayInsight(dateIso).map((p) => `<div style="margin:4px 0;">${escapeHtml(p)}</div>`).join("");
+  $("#sched-note").value = (state.plan.notes && state.plan.notes[dateIso]) || "";
+  $("#sched-modal").classList.remove("hidden");
+}
+$("#sched-note").addEventListener("change", () => {
+  if (!schedDate) return;
+  if (!state.plan.notes) state.plan.notes = {};
+  const v = $("#sched-note").value.trim();
+  if (v) state.plan.notes[schedDate] = v;
+  else delete state.plan.notes[schedDate];
+  save();
+  renderPlan(); // מעדכן את סימון ה-📝 בכותרת היום
+});
+$("#sched-cancel").addEventListener("click", () => $("#sched-modal").classList.add("hidden"));
+$("#sched-open-day").addEventListener("click", () => {
+  if (!schedDate) return;
+  $("#sched-modal").classList.add("hidden");
+  currentWorkoutDate = schedDate;
+  $('.navbtn[data-screen="workout"]').click();
+  window.scrollTo({ top: 0 });
+});
+
 let editingPlanNodeId = null;
 /* מסלול ארוחות בוחר ארוחה מהמאגר; שאר המסלולים — אימון מהמאגר */
 function fillPlanSourceSelect(lane, node) {
@@ -2491,6 +2664,7 @@ function openPlanEditor(nodeId, dateIso, lane) {
   $("#plan-lane").value = node ? node.lane : lane;
   fillPlanSourceSelect(node ? node.lane : lane, node);
   $("#plan-label").value = node ? node.label : "";
+  $("#plan-time").value = node && node.time ? node.time : "";
   $("#plan-delete").classList.toggle("hidden", !node);
   $("#plan-modal").classList.remove("hidden");
 }
@@ -2530,6 +2704,7 @@ $("#plan-save").addEventListener("click", () => {
     lane,
     templateId: lane === "food" ? undefined : srcId,
     mealId: lane === "food" ? srcId : undefined,
+    time: $("#plan-time").value || undefined,
     label,
   };
   if (editingPlanNodeId) {
