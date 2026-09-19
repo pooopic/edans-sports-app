@@ -719,6 +719,45 @@ if (state.seedV === 19) {
   save();
 }
 
+/* שדרוג 21: צמתים אדומים לכל ימי הכוח + יעדי מתח + ריצות ימי מבחן/מירוץ.
+   נקודה אפורה נשארת רק ליום מתוכנן שאין בו צומת (בעיקר בעבר). */
+if (state.seedV === 20) {
+  if (!state.plan) state.plan = { nodes: [] };
+  if (!state.runWorkouts.some((w) => w.id === "rw-race10k")) {
+    state.runWorkouts.push({ id: "rw-race10k", name: "מירוץ 10K", steps: [
+      { kind: "warmup", dur: "time", val: 10, zone: 2 },
+      { kind: "active", dur: "km", val: 10, zone: 0 },
+      { kind: "cooldown", dur: "time", val: 5, zone: 1 },
+    ]});
+  }
+  const base21 = new Date();
+  base21.setDate(base21.getDate() - base21.getDay());
+  const today21 = iso(new Date());
+  for (let week = 0; week < 12; week++) {
+    for (const dow of [0, 2, 4]) { // א'/ג'/ה' — כוח
+      const d = new Date(base21);
+      d.setDate(base21.getDate() + week * 7 + dow);
+      const dateIso = iso(d);
+      if (dateIso <= today21) continue;
+      if (state.plan.nodes.some((n) => n.date === dateIso && n.lane === "strength")) continue;
+      state.plan.nodes.push({ id: newId("pl"), date: dateIso, lane: "strength", templateId: "t-strength", label: "כוח + מתח", time: "07:00" });
+    }
+  }
+  // ימי מבחן ומירוץ מקבלים גם צומת ריצה מקושר לבנאי (ל-FIT ולסדר היום)
+  if (!state.plan.nodes.some((n) => n.lane === "run" && n.date === "2026-10-02")) {
+    state.plan.nodes.push({ id: newId("pl"), date: "2026-10-02", lane: "run", runWorkoutId: "rw-5k", label: "מבחן 5K", time: "07:00" });
+  }
+  if (!state.plan.nodes.some((n) => n.lane === "run" && n.date === "2026-10-30")) {
+    state.plan.nodes.push({ id: newId("pl"), date: "2026-10-30", lane: "run", runWorkoutId: "rw-race10k", label: "מירוץ העגור 10K", time: "07:00" });
+  }
+  // יעד ביניים לכוח: 5 מתח מלאים בדרך ל"מתח: 7 מלאים" (שכבר קיים ב-8.11)
+  if (!state.plan.nodes.some((n) => n.lane === "milestone" && /5 מתח|מתח: 5/.test(n.label || ""))) {
+    state.plan.nodes.push({ id: newId("pl"), date: "2026-10-15", lane: "milestone", label: "5 מתח מלאים" });
+  }
+  state.seedV = 21;
+  save();
+}
+
 /* שדרוג 12: מסך אימונים מודולרי — מאגר תרגילים, מאגר אימונים,
    והמרת כל הרישומים הקיימים למבנה המאוחד w.ex + w.exList */
 if (!state.exercises) state.exercises = JSON.parse(JSON.stringify(DEFAULT_EXLIB));
@@ -2552,8 +2591,10 @@ function renderPlan() {
           cell.appendChild(v);
         }
       } else {
-        // שכבה אוטומטית: מה מתוכנן לפי היום בשבוע + מה בוצע בפועל
+        // שכבה אוטומטית: מה מתוכנן לפי היום בשבוע + מה בוצע בפועל.
+        // נקודה אפורה רק כשאין צומת ביום — צומת מייצג את האימון בעצמו.
         const w = state.workouts[dateIso];
+        const nodesHere = planNodesAt(lane.id, dateIso);
         const isLaneDay = lane.id === "strength" ? STRENGTH_DAYS.includes(wd)
           : lane.id === "run" ? RUN_DAYS.includes(wd) : false;
         if (lane.id === "run" && w && w.run && w.run.km > 0) {
@@ -2561,7 +2602,7 @@ function renderPlan() {
           v.className = "gantt-val";
           v.textContent = `${w.run.km}ק`;
           cell.appendChild(v);
-        } else if (isLaneDay) {
+        } else if (isLaneDay && !nodesHere.length) {
           const dot = document.createElement("span");
           dot.className = "gantt-dot" + (w && w.done ? " done" : "");
           cell.appendChild(dot);
@@ -2569,7 +2610,7 @@ function renderPlan() {
         cell.dataset.date = dateIso;
         cell.dataset.lane = lane.id;
         // צמתים משובצים — גרירה מזיזה, הקשה קצרה עורכת
-        for (const node of planNodesAt(lane.id, dateIso)) {
+        for (const node of nodesHere) {
           const chip = document.createElement("span");
           chip.className = "gantt-node lane-" + lane.id + (lane.id === "milestone" ? " milestone" : "") +
             (w && w.done ? " done-node" : "");
