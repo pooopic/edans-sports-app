@@ -1,0 +1,29 @@
+name: Tamlili APK
+
+on:
+  push:
+    paths:
+      - "tamlili/**"
+      - ".github/workflows/tamlili-android.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tamlili
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build APK
+        run: ./gradlew --no-daemon assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tamlili-apk
+          path: tamlili/app/build/outputs/apk/release/*.apk
