@@ -18,7 +18,7 @@ import "./projects/projects.js";
 import "./gantt/plan.js";
 import { initNav } from "./core/nav.js";
 
-initNav("menu");
+initNav("plan"); // מסך פתיחה: הגאנט (החלטה 8 ב-docs/HANDOFF-personal-hub.md)
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
