@@ -180,17 +180,36 @@
     <header class="topbar">
       <div class="topbar-title">
         <h1>גאנט</h1>
-        <div class="subtitle">גאנט 12 שבועות · הקש על תא לשיבוץ, על צומת לעריכה</div>
+        <div class="subtitle">כל העצים על ציר זמן אחד · גרירה משנה תאריך במקור</div>
       </div>
     </header>
-    <div class="toolbar" style="justify-content:center;">
-      <button id="plan-undo" class="btn small ghost" disabled>↩️ בטל שינוי אחרון</button>
+    <div class="toolbar gantt-toolbar">
+      <div class="mode-toggle">
+        <button id="gantt-mode-week" class="mode-btn">שבוע</button>
+        <button id="gantt-mode-long" class="mode-btn">16 שבועות</button>
+      </div>
+      <div id="wk-nav" class="wk-nav">
+        <button id="wk-prev" class="iconbtn" title="שבוע קודם">‹</button>
+        <button id="wk-today" class="btn small ghost">השבוע</button>
+        <button id="wk-next" class="iconbtn" title="שבוע הבא">›</button>
+        <span id="wk-label" class="wk-label-text"></span>
+      </div>
+      <button id="plan-undo" class="btn small ghost" disabled>↩️ בטל</button>
     </div>
-    <div class="gantt-wrap">
-      <div id="gantt"></div>
+
+    <div id="wk-view">
+      <div id="wk-focus" class="card wk-focus"></div>
+      <div id="wk-grid"></div>
+      <p class="footnote">הקשה על פריט = עריכה במקור · גרירה (בטלפון: לחיצה ארוכה) = העברה ליום אחר · הקשה על ○ = בוצע · הקשה על משבצת ריקה = הוספה · פריט חלש = מופע עתידי של מטלה חוזרת.</p>
     </div>
-    <p class="footnote">💪 כוח · 🏃 ריצה · 🎯 יעדים · נקודה ירוקה = אימון שבוצע · שורת ⚖️ מציגה את המדידות שנרשמו.
-    גרירת צומת מזיזה אותו לתא אחר; הקשה קצרה פותחת עריכה. צומת עם אימון מהמאגר קובע מה ייפתח בלוג באותו יום.</p>
+
+    <div id="long-view" class="hidden">
+      <div class="gantt-wrap">
+        <div id="gantt"></div>
+      </div>
+      <p class="footnote">💪 כוח · 🏃 ריצה · 🎯 יעדים · 📁 פסי פרויקטים פעילים (התחלה → יעד) · ✅ מטלות · נקודה ירוקה = אימון שבוצע.
+      גרירה מזיזה; הקשה קצרה פותחת עריכה. צומת עם אימון מהמאגר קובע מה ייפתח בלוג באותו יום.</p>
+    </div>
   </section>
 
   <!-- ===== מסך קניות ===== -->
@@ -652,6 +671,10 @@
     <div class="row gap">
       <label class="grow">תאריך (לא חובה)<input id="task-date" type="date"></label>
       <label class="grow">פרויקט<select id="task-project"></select></label>
+    </div>
+    <div class="row gap">
+      <label class="grow">שעה (ריק = כל היום)<input id="task-time" type="time"></label>
+      <label class="grow">משך (דקות)<input id="task-dur" type="number" min="5" step="5" value="60" inputmode="numeric"></label>
     </div>
     <label class="row check"><input id="task-repeat-on" type="checkbox"> מטלה חוזרת</label>
     <div id="task-repeat-box" class="row gap hidden">

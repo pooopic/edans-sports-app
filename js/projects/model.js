@@ -1,7 +1,8 @@
 "use strict";
 /* עץ 3 — מודל נתונים של פרויקטים ומטלות.
    state.projects: [{ id, name, area, status, start, end, nextStep, notes, createdAt }]
-   state.tasks:    [{ id, projectId, title, date, done, doneAt, repeat, lastDone }]
+   state.tasks:    [{ id, projectId, title, date, time, duration, done, doneAt, repeat, lastDone }]
+   time: "HH:MM" או ריק (= כל היום) · duration: דקות (רק כשיש שעה)
    repeat: null או { every: N, unit: "day" | "week" | "month" } — מטלה חוזרת היא רשומה אחת
    שהתאריך שלה מתקדם בכל סימון "בוצע" (לא נוצרים עותקים).
    הגאנט (שלב 3) קורא מכאן ועורך דרך הפונקציות האלה — מקור אמת אחד. */
@@ -119,7 +120,8 @@ export function toggleTaskDone(task) {
 
 /* מטלות פתוחות, ממוינות: באיחור ← היום ← לפי תאריך ← בלי תאריך */
 export function openTasksSorted(list) {
-  return list.filter((t) => !t.done).sort((a, b) => (a.date || "9999").localeCompare(b.date || "9999"));
+  const key = (t) => (t.date || "9999") + (t.time || "99:99");
+  return list.filter((t) => !t.done).sort((a, b) => key(a).localeCompare(key(b)));
 }
 export function dueLabel(task) {
   if (!task.date) return { text: "", cls: "" };

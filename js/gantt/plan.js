@@ -1,5 +1,5 @@
 "use strict";
-import { registerScreen, showScreen } from "../core/nav.js";
+import { showScreen } from "../core/nav.js";
 import { DAY_NAMES, DAY_SHORT, REST_DAY, RUN_DAYS, STRENGTH_DAYS } from "../core/constants.js";
 import { addDays, fromIso, shortDate, todayIso, weekKeyOf } from "../core/dates.js";
 import { mealById, mealProtein, newId } from "../core/model.js";
@@ -7,6 +7,9 @@ import { proteinMax, proteinMin, save, state, view } from "../core/state.js";
 import { $, escapeHtml } from "../core/ui.js";
 import { dayTemplate, planNodeFor, rwkById, templateById } from "../fitness/model.js";
 import { ensureWeek } from "../nutrition/model.js";
+import { ROUTINE_ID, activeProjects } from "../projects/model.js";
+import { openProjectEditor, openTaskEditor } from "../projects/projects.js";
+import { projectBars, projectColor, taskChip, taskOccurrences } from "./items.js";
 
 /* ============================ מסך תכנון (גאנט) ============================ */
 
@@ -17,6 +20,8 @@ export const PLAN_LANES = [
   { id: "run", label: "🏃 ריצה" },
   { id: "food", label: "🍽️ ארוחות" },
   { id: "milestone", label: "🎯 יעדים" },
+  { id: "projects", label: "📁 פרויקטים" },
+  { id: "tasks", label: "✅ מטלות" },
   { id: "body", label: "⚖️ גוף" },
   { id: "insight", label: "📝 הסבר" },
 ];
@@ -58,6 +63,10 @@ export function renderPlan() {
   const today = todayIso();
   const bodyByDate = {};
   for (const e of state.body || []) bodyByDate[e.date] = e;
+  const end = addDays(start, totalDays - 1);
+  const bars = projectBars(start, end);
+  const occByDate = {};
+  for (const o of taskOccurrences(start, end)) (occByDate[o.date] = occByDate[o.date] || []).push(o);
 
   // שורת כותרת: יום ותאריך
   const head = document.createElement("div");
@@ -105,6 +114,24 @@ export function renderPlan() {
           v.textContent = e.weight ? Math.round(e.weight) : "•";
           cell.appendChild(v);
         }
+      } else if (lane.id === "projects") {
+        // פסים של פרויקטים פעילים (התחלה → יעד סיום). השם מופיע בתא הראשון של הפס
+        for (const b of bars) {
+          if (dateIso < b.start || dateIso > b.end) continue;
+          const band = document.createElement("span");
+          band.className = "proj-band" + (dateIso === b.start ? " first" : "") + (dateIso === b.end ? " last" : "");
+          band.style.background = projectColor(b.p);
+          if (dateIso === b.start || wd === 0) band.textContent = b.p.name; // שם בתחילת הפס ובכל ראשון
+          band.title = `${b.p.name}${b.p.nextStep ? " · 👉 " + b.p.nextStep : ""}`;
+          band.addEventListener("click", (e) => { e.stopPropagation(); openProjectEditor(b.p.id, () => gantt.rerender()); });
+          cell.appendChild(band);
+        }
+      } else if (lane.id === "tasks") {
+        cell.classList.add("drop-zone");
+        cell.dataset.date = dateIso;
+        cell.dataset.lane = "tasks";
+        for (const o of occByDate[dateIso] || []) cell.appendChild(taskChip(o));
+        cell.addEventListener("click", () => openTaskEditor(null, defaultProjectId(), () => gantt.rerender(), dateIso));
       } else if (lane.id === "insight") {
         cell.classList.add("insight");
         cell.textContent = dayGist(dateIso);
@@ -127,6 +154,7 @@ export function renderPlan() {
           dot.className = "gantt-dot" + (w && w.done ? " done" : "");
           cell.appendChild(dot);
         }
+        cell.classList.add("drop-zone");
         cell.dataset.date = dateIso;
         cell.dataset.lane = lane.id;
         // צמתים משובצים — גרירה מזיזה, הקשה קצרה עורכת
@@ -216,15 +244,26 @@ export function drawPlanEdges(gantt) {
   gantt.appendChild(svg);
 }
 
-/* ביטול (Undo) לשינויים בתכנון: לפני כל שינוי נשמר צילום מקומי של הצמתים */
+/* מטלה חדשה מהגאנט נכנסת לפרויקט הפעיל הראשון (אפשר לשנות במודאל), אחרת לשוטף */
+export function defaultProjectId() {
+  const a = activeProjects();
+  return a.length ? a[0].id : ROUTINE_ID;
+}
+
+/* מה מרנדרים אחרי שינוי: הגאנט הארוך או תצוגת השבוע (week.js מחליף את זה) */
+export const gantt = { rerender: () => renderPlan() };
+
+/* ביטול (Undo) לשינויים בתכנון. רשומה במחסנית היא אחת מאלה:
+   מערך = צילום של כל צמתי התכנון · { task, date } = מטלה שהוזזה (מחזירים רק את התאריך שלה,
+   כדי שביטול לא ימחק סימוני "בוצע" שנעשו בינתיים) */
 export const PLAN_UNDO_KEY = "edan-plan-undo";
 export function planUndoStack() {
   try { return JSON.parse(localStorage.getItem(PLAN_UNDO_KEY)) || []; } catch (e) { return []; }
 }
-export function pushPlanUndo() {
+export function pushPlanUndo(entry) {
   try {
     const stack = planUndoStack();
-    stack.push(JSON.stringify(state.plan.nodes));
+    stack.push(JSON.stringify(entry || state.plan.nodes));
     while (stack.length > 15) stack.shift();
     localStorage.setItem(PLAN_UNDO_KEY, JSON.stringify(stack));
   } catch (e) {}
@@ -237,10 +276,15 @@ export function updatePlanUndoBtn() {
 $("#plan-undo").addEventListener("click", () => {
   const stack = planUndoStack();
   if (!stack.length) return;
-  state.plan.nodes = JSON.parse(stack.pop());
+  const snap = JSON.parse(stack.pop());
+  if (Array.isArray(snap)) state.plan.nodes = snap;
+  else if (snap && snap.task) {
+    const t = (state.tasks || []).find((x) => x.id === snap.task);
+    if (t) t.date = snap.date;
+  }
   try { localStorage.setItem(PLAN_UNDO_KEY, JSON.stringify(stack)); } catch (e) {}
   save();
-  renderPlan();
+  gantt.rerender();
   updatePlanUndoBtn();
 });
 
@@ -254,15 +298,17 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* גרירת צומת בין תאים. עכבר: תזוזה מעל 8px = גרירה, אחרת עריכה.
+/* גרירה בין תאים (גאנט ארוך ותצוגת שבוע). עכבר: תזוזה מעל 8px = גרירה, אחרת הקשה.
    מגע (טלפון): גרירה רק אחרי לחיצה ארוכה (350ms, עם רטט) — מגע קצר תוך כדי
-   גלילה לא מזיז יותר צמתים בטעות; הקשה קצרה עדיין פותחת עריכה. */
-export function makeNodeDraggable(chip, node) {
+   גלילה לא מזיז פריטים בטעות; הקשה קצרה עדיין פותחת עריכה.
+   יעד = אלמנט .drop-zone עם data-date (ו-data-lane בגאנט הארוך). */
+export function makeDraggable(chip, { onTap, onDrop, isSame }) {
   chip.addEventListener("click", (e) => e.stopPropagation());
   chip.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     e.stopPropagation();
     chip.setPointerCapture(e.pointerId);
+    const downTarget = e.target;
     const isTouch = e.pointerType === "touch";
     const startX = e.clientX, startY = e.clientY;
     let dragging = false, dragArmed = !isTouch, targetCell = null, moved = false;
@@ -285,7 +331,7 @@ export function makeNodeDraggable(chip, node) {
       }
       if (!dragging) return;
       const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      const cell = el && el.closest ? el.closest(".gantt-cell[data-date]") : null;
+      const cell = el && el.closest ? el.closest(".drop-zone[data-date]") : null;
       if (targetCell && targetCell !== cell) targetCell.classList.remove("drop-target");
       targetCell = cell;
       if (cell) cell.classList.add("drop-target");
@@ -293,23 +339,47 @@ export function makeNodeDraggable(chip, node) {
     const finish = () => {
       clearTimeout(holdTimer);
       chip.removeEventListener("pointermove", move);
+      chip.removeEventListener("pointerup", finish);
+      chip.removeEventListener("pointercancel", finish);
       chip.classList.remove("dragging-node");
       if (targetCell) targetCell.classList.remove("drop-target");
-      if (dragging && targetCell && (targetCell.dataset.date !== node.date || targetCell.dataset.lane !== node.lane)) {
-        pushPlanUndo();
-        node.date = targetCell.dataset.date;
-        node.lane = targetCell.dataset.lane;
-        save();
-        renderPlan();
-      } else if (!dragging && !moved) {
-        openPlanEditor(node.id, node.date, node.lane);
-      } else if (dragging) {
-        renderPlan(); // גרירה שלא ננחתה על תא — חוזרים למקום
-      }
+      if (dragging && targetCell && !isSame(targetCell.dataset)) onDrop(targetCell.dataset);
+      else if (!dragging && !moved) onTap(downTarget);
+      else if (dragging) gantt.rerender(); // לא ננחת על תא חדש — חוזרים למקום
     };
     chip.addEventListener("pointermove", move);
-    chip.addEventListener("pointerup", finish, { once: true });
-    chip.addEventListener("pointercancel", finish, { once: true });
+    chip.addEventListener("pointerup", finish);
+    chip.addEventListener("pointercancel", finish);
+  });
+}
+
+const NODE_LANES = ["strength", "run", "food", "milestone"];
+/* צומת תכנון (כושר/ארוחה/יעד). laneFixed: בתצוגת השבוע משנים רק תאריך */
+export function makeNodeDraggable(chip, node, laneFixed) {
+  const laneFor = (d) => (!laneFixed && NODE_LANES.includes(d.lane) ? d.lane : node.lane);
+  makeDraggable(chip, {
+    onTap: () => openPlanEditor(node.id, node.date, node.lane),
+    isSame: (d) => d.date === node.date && laneFor(d) === node.lane,
+    onDrop: (d) => {
+      pushPlanUndo();
+      node.date = d.date;
+      node.lane = laneFor(d);
+      save();
+      gantt.rerender();
+    },
+  });
+}
+/* מטלה מעץ הפרויקטים — גרירה משנה את התאריך שלה (שם, במקור) */
+export function makeTaskDraggable(chip, task, onTap) {
+  makeDraggable(chip, {
+    onTap,
+    isSame: (d) => d.date === task.date,
+    onDrop: (d) => {
+      pushPlanUndo({ task: task.id, date: task.date || null });
+      task.date = d.date;
+      save();
+      gantt.rerender();
+    },
   });
 }
 
@@ -411,7 +481,7 @@ $("#sched-note").addEventListener("change", () => {
   if (v) state.plan.notes[schedDate] = v;
   else delete state.plan.notes[schedDate];
   save();
-  renderPlan(); // מעדכן את סימון ה-📝 בכותרת היום
+  gantt.rerender(); // מעדכן את סימון ה-📝 בכותרת היום
 });
 $("#sched-cancel").addEventListener("click", () => $("#sched-modal").classList.add("hidden"));
 $("#sched-open-day").addEventListener("click", () => {
@@ -479,7 +549,7 @@ $("#plan-delete").addEventListener("click", () => {
   state.plan.nodes = state.plan.nodes.filter((n) => n.id !== editingPlanNodeId);
   save();
   $("#plan-modal").classList.add("hidden");
-  renderPlan();
+  gantt.rerender();
 });
 $("#plan-save").addEventListener("click", () => {
   const label = $("#plan-label").value.trim();
@@ -504,7 +574,6 @@ $("#plan-save").addEventListener("click", () => {
   }
   save();
   $("#plan-modal").classList.add("hidden");
-  renderPlan();
+  gantt.rerender();
 });
 
-registerScreen("plan", renderPlan);

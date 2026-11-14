@@ -29,7 +29,7 @@ function taskRow(task, onChange) {
   const due = dueLabel(task);
   const rep = repeatLabel(task.repeat);
   body.innerHTML = `<span class="task-title">${escapeHtml(task.title)}</span>` +
-    (due.text && !task.done ? `<span class="task-due ${due.cls}">${due.text}</span>` : "") +
+    (due.text && !task.done ? `<span class="task-due ${due.cls}">${due.text}${task.time ? " " + task.time : ""}</span>` : "") +
     (rep ? `<span class="task-rep">🔁 ${rep}</span>` : "");
   body.addEventListener("click", () => openTaskEditor(task.id, task.projectId, onChange));
   row.append(cb, body);
@@ -117,6 +117,7 @@ function renderLists() {
 
 /* ---------- מודאל פרויקט ---------- */
 let editingProjectId = null;
+let projectOnSaved = null; // נקרא אחרי שמירה/מחיקה (למשל רענון הגאנט כשנפתח משם)
 
 function fillStatusSelect(sel, value) {
   sel.innerHTML = "";
@@ -139,8 +140,9 @@ function updateStatusWarn() {
   if (show) warn.textContent = `כבר יש ${others} פעילים. זה יהיה ה-${others + 1} — אולי להקפיא אחד אחר?`;
 }
 
-function openProjectEditor(id) {
+export function openProjectEditor(id, onSaved) {
   editingProjectId = id;
+  projectOnSaved = onSaved || null;
   const p = id ? projectById(id) : null;
   const routine = isRoutine(p);
   $("#proj-modal-title").textContent = p ? p.name : "פרויקט חדש";
@@ -166,7 +168,7 @@ function renderProjectTasks() {
   const all = tasksOf(editingProjectId);
   const open = openTasksSorted(all);
   const done = all.filter((t) => t.done);
-  const refresh = () => { renderProjectTasks(); renderProjects(); };
+  const refresh = () => { renderProjectTasks(); renderProjects(); if (projectOnSaved) projectOnSaved(); };
   for (const t of open) wrap.appendChild(taskRow(t, refresh));
   if (done.length) {
     const d = document.createElement("details");
@@ -180,7 +182,7 @@ function renderProjectTasks() {
 $("#proj-status").addEventListener("change", updateStatusWarn);
 $("#proj-add").addEventListener("click", () => openProjectEditor(null));
 $("#proj-cancel").addEventListener("click", () => $("#proj-modal").classList.add("hidden"));
-$("#proj-task-add").addEventListener("click", () => openTaskEditor(null, editingProjectId, () => { renderProjectTasks(); renderProjects(); }));
+$("#proj-task-add").addEventListener("click", () => openTaskEditor(null, editingProjectId, () => { renderProjectTasks(); renderProjects(); if (projectOnSaved) projectOnSaved(); }));
 $("#proj-delete").addEventListener("click", () => {
   const p = projectById(editingProjectId);
   const n = tasksOf(editingProjectId).length;
@@ -188,6 +190,7 @@ $("#proj-delete").addEventListener("click", () => {
   deleteProject(editingProjectId);
   $("#proj-modal").classList.add("hidden");
   renderProjects();
+  if (projectOnSaved) projectOnSaved();
 });
 $("#proj-save").addEventListener("click", () => {
   const name = $("#proj-name").value.trim();
@@ -206,19 +209,22 @@ $("#proj-save").addEventListener("click", () => {
   });
   $("#proj-modal").classList.add("hidden");
   renderProjects();
+  if (projectOnSaved) projectOnSaved();
 });
 
 /* ---------- מודאל מטלה ---------- */
 let editingTaskId = null;
 let taskOnSaved = null;
 
-function openTaskEditor(taskId, projectId, onSaved) {
+export function openTaskEditor(taskId, projectId, onSaved, defaultDate) {
   editingTaskId = taskId;
   taskOnSaved = onSaved;
   const t = taskId ? state.tasks.find((x) => x.id === taskId) : null;
   $("#task-modal-title").textContent = t ? "עריכת מטלה" : "מטלה חדשה";
   $("#task-title").value = t ? t.title : "";
-  $("#task-date").value = t && t.date ? t.date : "";
+  $("#task-date").value = t && t.date ? t.date : defaultDate || "";
+  $("#task-time").value = t && t.time ? t.time : "";
+  $("#task-dur").value = t && t.duration ? t.duration : 60;
   const sel = $("#task-project");
   sel.innerHTML = "";
   for (const p of state.projects.filter((x) => x.status !== "dropped" || x.id === projectId)) {
@@ -261,6 +267,8 @@ $("#task-save").addEventListener("click", () => {
     projectId: $("#task-project").value,
     title,
     date,
+    time: date && $("#task-time").value ? $("#task-time").value : undefined, // בלי שעה = כל היום
+    duration: date && $("#task-time").value ? Math.max(5, parseInt($("#task-dur").value, 10) || 60) : undefined,
     repeat: repeatOn
       ? { every: Math.max(1, parseInt($("#task-repeat-every").value, 10) || 1), unit: $("#task-repeat-unit").value }
       : null,

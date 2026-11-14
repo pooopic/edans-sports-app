@@ -16,6 +16,7 @@ import "./fitness/runbuilder.js";
 import "./fitness/progress.js";
 import "./projects/projects.js";
 import "./gantt/plan.js";
+import "./gantt/week.js";
 import { initNav } from "./core/nav.js";
 
 initNav("plan"); // מסך פתיחה: הגאנט (החלטה 8 ב-docs/HANDOFF-personal-hub.md)

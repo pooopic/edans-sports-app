@@ -1,4 +1,4 @@
-const CACHE = "edan-tracker-v44";
+const CACHE = "edan-tracker-v45";
 const ASSETS = [
   "./",
   "./index.html",
@@ -17,7 +17,9 @@ const ASSETS = [
   "./js/fitness/progress.js",
   "./js/fitness/runbuilder.js",
   "./js/fitness/workout.js",
+  "./js/gantt/items.js",
   "./js/gantt/plan.js",
+  "./js/gantt/week.js",
   "./js/main.js",
   "./js/nutrition/food.js",
   "./js/nutrition/menu.js",
