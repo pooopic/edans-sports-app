@@ -881,3 +881,17 @@ details.proj-section > summary { cursor: pointer; }
 .wk-agenda .gantt-node, .wk-grid .gantt-node { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #gantt .task-node .chip-proj { display: none; }
 #gantt .task-node { max-width: 100%; font-size: 0.68rem; }
+
+/* ---- יומן גוגל ---- */
+.gcal-chip {
+  display: block; font-size: 0.72rem; color: var(--muted); text-decoration: none;
+  background: rgba(147, 161, 175, 0.12); border-inline-start: 3px solid rgba(147, 161, 175, 0.6);
+  border-radius: 5px; padding: 2px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wk-line .gcal-chip { display: inline-block; max-width: 100%; }
+.wk-reauth { margin-top: 8px; }
+.rem-editor { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 10px; }
+.rem-row { align-items: center; }
+.rem-row input[type="number"] { width: 70px; flex: none; }
+.rem-row input[type="time"] { width: 110px; flex: none; }
+.rem-row .hint { margin: 0; white-space: nowrap; }

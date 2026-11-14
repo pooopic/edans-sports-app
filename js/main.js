@@ -7,6 +7,7 @@
 import "./core/state.js";
 import "./core/migrations.js";
 import "./core/sync.js";
+import "./core/gcal.js";
 import "./core/settings.js";
 import "./nutrition/menu.js";
 import "./nutrition/food.js";

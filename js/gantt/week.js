@@ -9,6 +9,7 @@ import { addDays, fromIso, shortDate, todayIso, weekKeyOf } from "../core/dates.
 import { registerScreen, showScreen } from "../core/nav.js";
 import { proteinMin, state, view } from "../core/state.js";
 import { $, escapeHtml } from "../core/ui.js";
+import { fetchPrimaryEvents, gcalConnect, gcalConnected, gcalNeedsAuth, primaryEventsCached } from "../core/gcal.js";
 import { dayTemplate, planNodeFor } from "../fitness/model.js";
 import { ROUTINE_ID, activeLimit, activeProjects, isRoutine } from "../projects/model.js";
 import { openProjectEditor, openTaskEditor } from "../projects/projects.js";
@@ -99,10 +100,27 @@ function foodItems(dateIso) {
   return items;
 }
 
+/* שכבת היומן הראשי — אפור, קריאה בלבד. הקשה פותחת את האירוע בגוגל קלנדר */
+let calEvents = null;
+function calendarItems(dateIso) {
+  return (calEvents || []).filter((e) => e.date === dateIso).map((e) => {
+    const a = document.createElement("a");
+    a.className = "gcal-chip";
+    a.href = e.link || "#";
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.innerHTML = (e.time ? `<b>${e.time}</b> ` : "") + escapeHtml(e.title);
+    a.title = e.title + " (יומן גוגל)";
+    a.addEventListener("click", (ev) => ev.stopPropagation());
+    return a;
+  });
+}
+
 /* ---------- פעולות ---------- */
 function openWorkoutDay(dateIso) { view.workoutDate = dateIso; showScreen("workout"); }
 function openMenuWeek(dateIso) { view.weekKey = weekKeyOf(fromIso(dateIso)); showScreen("menu"); }
 const rerender = () => gantt.rerender();
+const CAL_LANE = { id: "calendar", label: "📅 יומן", items: calendarItems, onEmpty: () => {} };
 const LANES = [
   { id: "fitness", label: "🏋️ כושר", items: fitnessItems, onEmpty: (d) => openPlanEditor(null, d, STRENGTH_DAYS.includes(fromIso(d).getDay()) ? "strength" : "run") },
   { id: "food", label: "🍽️ תזונה", items: foodItems, onEmpty: openMenuWeek },
@@ -122,6 +140,13 @@ function renderFocus(occ) {
   head.className = "wk-focus-head";
   head.innerHTML = `<b>🎯 פוקוס</b> <span class="hint" style="margin:0;">${active.length} פעילים · ${tasksCount} מטלות השבוע${late ? ` · <span class="late">${late} באיחור</span>` : ""}</span>`;
   box.appendChild(head);
+  if (gcalNeedsAuth()) {
+    const b = document.createElement("button");
+    b.className = "btn small wk-reauth";
+    b.textContent = "📅 החיבור ליומן גוגל פג — התחבר מחדש";
+    b.addEventListener("click", async () => { await gcalConnect(); renderWeek(); });
+    box.appendChild(b);
+  }
   if (activeLimit() && active.length > activeLimit()) {
     box.insertAdjacentHTML("beforeend", `<div class="wk-warn">⚠️ ${active.length} פעילים — מעל המגבלה שהגדרת (${activeLimit()}).</div>`);
   }
@@ -155,11 +180,19 @@ function renderWeek() {
     .sort((a, b) => (b.overdue ? 1 : 0) - (a.overdue ? 1 : 0));
   const itemsFor = (lane, date) => lane.items ? lane.items(date) : occAt(date, lane.id === "routine").map(taskChip);
   const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
+  // יומן גוגל: מציגים מהמטמון מיד, ומושכים ברקע; כשמגיע — מרנדרים שוב (אם עדיין באותו שבוע)
+  const lanes = gcalConnected() ? [CAL_LANE, ...LANES] : LANES;
+  calEvents = primaryEventsCached(from, to);
+  if (gcalConnected() && !gcalNeedsAuth()) {
+    fetchPrimaryEvents(from, to).then((ev) => {
+      if (ev && ev !== calEvents && weekKey === from && mode === "week") { calEvents = ev; renderWeek(); }
+    });
+  }
   const host = $("#wk-grid");
   host.innerHTML = "";
   host.className = wide.matches ? "wk-grid" : "wk-agenda";
-  if (wide.matches) renderGrid(host, days, today, itemsFor, projectBars(from, to));
-  else renderAgenda(host, days, today, itemsFor);
+  if (wide.matches) renderGrid(host, lanes, days, today, itemsFor, projectBars(from, to));
+  else renderAgenda(host, lanes, days, today, itemsFor);
 }
 
 function dayHead(date, today) {
@@ -180,7 +213,7 @@ function dropCell(date, lane, cls) {
   return c;
 }
 
-function renderGrid(host, days, today, itemsFor, bars) {
+function renderGrid(host, lanes, days, today, itemsFor, bars) {
   let row = 1;
   const place = (el, r, col, span) => {
     el.style.gridRow = String(r);
@@ -190,7 +223,7 @@ function renderGrid(host, days, today, itemsFor, bars) {
   place(document.createElement("div"), row, 1);
   days.forEach((d, i) => place(dayHead(d, today), row, i + 2));
   row++;
-  for (const lane of LANES) {
+  for (const lane of lanes) {
     const laneBars = lane.id === "projects" ? bars : [];
     const label = document.createElement("div");
     label.className = "wk-label";
@@ -220,13 +253,14 @@ function renderGrid(host, days, today, itemsFor, bars) {
   }
 }
 
-function renderAgenda(host, days, today, itemsFor) {
+function renderAgenda(host, lanes, days, today, itemsFor) {
   for (const d of days) {
     const card = document.createElement("div");
     card.className = "card wk-day" + (d === today ? " today" : "") + (d < today ? " past" : "");
     card.appendChild(dayHead(d, today));
-    for (const lane of LANES) {
+    for (const lane of lanes) {
       const items = itemsFor(lane, d);
+      if (lane.id === "calendar" && !items.length) continue; // בטלפון: שורת יומן רק כשיש בה משהו
       const line = dropCell(d, lane, "wk-line");
       const lbl = document.createElement("span");
       lbl.className = "wk-line-label";

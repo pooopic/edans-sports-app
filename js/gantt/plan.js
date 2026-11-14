@@ -7,6 +7,8 @@ import { proteinMax, proteinMin, save, state, view } from "../core/state.js";
 import { $, escapeHtml } from "../core/ui.js";
 import { dayTemplate, planNodeFor, rwkById, templateById } from "../fitness/model.js";
 import { ensureWeek } from "../nutrition/model.js";
+import { gcalConnected } from "../core/gcal.js";
+import { reminderEditor } from "../core/reminders.js";
 import { ROUTINE_ID, activeProjects } from "../projects/model.js";
 import { openProjectEditor, openTaskEditor } from "../projects/projects.js";
 import { projectBars, projectColor, taskChip, taskOccurrences } from "./items.js";
@@ -522,9 +524,20 @@ export function openPlanEditor(nodeId, dateIso, lane) {
   $("#plan-label").value = node ? node.label : "";
   $("#plan-time").value = node && node.time ? node.time : "";
   $("#plan-delete").classList.toggle("hidden", !node);
+  syncPlanRem(node);
   $("#plan-modal").classList.remove("hidden");
 }
+/* התראות ביומן — רק לאימוני כוח/ריצה (רק הם נכתבים ליומן) */
+let planRem = null;
+function syncPlanRem(node) {
+  const show = gcalConnected() && ["strength", "run"].includes($("#plan-lane").value);
+  $("#plan-rem-wrap").classList.toggle("hidden", !show);
+  if (show && (!planRem || node !== undefined)) {
+    planRem = reminderEditor($("#plan-rem"), node && node.reminders !== undefined ? node.reminders : null, { isTimed: () => true });
+  }
+}
 $("#plan-lane").addEventListener("change", () => {
+  syncPlanRem();
   const node = editingPlanNodeId ? state.plan.nodes.find((n) => n.id === editingPlanNodeId) : null;
   fillPlanSourceSelect($("#plan-lane").value, node);
 });
@@ -566,6 +579,7 @@ $("#plan-save").addEventListener("click", () => {
     time: $("#plan-time").value || undefined,
     label,
   };
+  if (planRem && !$("#plan-rem-wrap").classList.contains("hidden")) data.reminders = planRem.get();
   pushPlanUndo();
   if (editingPlanNodeId) {
     Object.assign(state.plan.nodes.find((n) => n.id === editingPlanNodeId), data);

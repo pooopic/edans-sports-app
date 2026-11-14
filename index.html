@@ -373,13 +373,37 @@
     </header>
 
     <div class="card">
+      <div class="card-head"><h2>📅 יומן גוגל</h2></div>
+      <p class="hint">מטלות עם תאריך ואימונים מהתכנון נכתבים ליומן נפרד בשם "המעקב של עדן". לאפליקציה יש גישת כתיבה רק ליומן הזה — היומן הראשי רק נקרא ומוצג בגאנט באפור.
+      כל שינוי באפליקציה מתעדכן ביומן; מחיקה או סימון ✓ מוחקים את האירוע.</p>
+      <div id="gcal-off">
+        <button id="gcal-connect" class="btn primary" style="width:100%;">🔗 חבר את יומן גוגל</button>
+      </div>
+      <div id="gcal-on" class="hidden">
+        <div class="row gap">
+          <button id="gcal-sync" class="btn grow">🔄 עדכן עכשיו</button>
+          <button id="gcal-reauth" class="btn grow hidden">🔑 התחבר מחדש</button>
+        </div>
+        <label style="margin-top:10px;">🔔 ברירת מחדל — אירוע עם שעה</label>
+        <div id="gcal-rem-timed"></div>
+        <label style="margin-top:8px;">🔔 ברירת מחדל — אירוע של כל היום</label>
+        <div id="gcal-rem-allday"></div>
+        <div class="row gap" style="margin-top:10px;">
+          <button id="gcal-disconnect" class="btn ghost grow">נתק</button>
+          <button id="gcal-delete" class="btn ghost danger grow">🗑️ מחק את היומן מגוגל</button>
+        </div>
+      </div>
+      <p class="hint" id="gcal-status" style="margin:8px 0 0;"></p>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>📁 פרויקטים פעילים</h2></div>
       <label>אזהרה כשיש יותר מ-X פעילים (ריק או 0 = בלי מגבלה)<input id="set-active-limit" type="number" min="0" inputmode="numeric" placeholder="בלי מגבלה"></label>
     </div>
 
     <div class="card">
       <div class="card-head"><h2>🕖 שעת אימון ברירת מחדל</h2></div>
-      <p class="hint">משמשת את "סדר היום" בגאנט. האפליקציה לא כותבת ליומן גוגל.</p>
+      <p class="hint">משמשת את "סדר היום" בגאנט, ואימון בלי שעה נכתב ליומן גוגל בשעה הזו.</p>
       <div class="row gap">
         <label class="grow">שעת אימון<input id="set-workout-time" type="time" value="07:00"></label>
         <label class="grow">משך (דקות)<input id="set-workout-dur" type="number" min="15" max="180" value="45" inputmode="numeric"></label>
@@ -541,6 +565,10 @@
       <label class="grow">תווית<input id="plan-label" type="text" placeholder="טמפו 15ד / מבחן 5K / סאב-60..."></label>
       <label style="width:110px;">שעה (לא חובה)<input id="plan-time" type="time"></label>
     </div>
+    <div id="plan-rem-wrap" class="hidden">
+      <label>🔔 התראות ביומן גוגל</label>
+      <div id="plan-rem"></div>
+    </div>
     <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 4px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
     <div class="row gap">
       <button id="plan-save" class="btn primary grow">שמור</button>
@@ -687,6 +715,10 @@
       <label class="grow">יחידה<select id="task-repeat-unit"><option value="day">ימים</option><option value="week" selected>שבועות</option><option value="month">חודשים</option></select></label>
     </div>
     <p id="task-repeat-hint" class="hint hidden">סימון ✓ מקדם את התאריך למופע הבא — המטלה לא נעלמת.</p>
+    <div id="task-rem-wrap" class="hidden">
+      <label>🔔 התראות ביומן גוגל</label>
+      <div id="task-rem"></div>
+    </div>
     <div class="row gap" style="margin-top:12px;">
       <button id="task-save" class="btn primary grow">שמור</button>
       <button id="task-delete" class="btn ghost danger hidden">🗑️</button>

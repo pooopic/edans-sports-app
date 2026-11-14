@@ -6,6 +6,8 @@ import { registerScreen } from "../core/nav.js";
 import { $, escapeHtml } from "../core/ui.js";
 import { state } from "../core/state.js";
 import { shortDate, todayIso } from "../core/dates.js";
+import { gcalConnected } from "../core/gcal.js";
+import { reminderEditor } from "../core/reminders.js";
 import {
   ROUTINE_ID, activeLimit, STATUSES, activeProjects, allAreas, bulkAddProjects, deleteProject,
   deleteTask, dueLabel, isRoutine, openTasksSorted, projectById, repeatLabel, saveProject,
@@ -217,6 +219,7 @@ $("#proj-save").addEventListener("click", () => {
 
 /* ---------- מודאל מטלה ---------- */
 let editingTaskId = null;
+let taskRem = null; // עורך ההתראות של המטלה הפתוחה
 let taskOnSaved = null;
 
 export function openTaskEditor(taskId, projectId, onSaved, defaultDate) {
@@ -228,6 +231,9 @@ export function openTaskEditor(taskId, projectId, onSaved, defaultDate) {
   $("#task-date").value = t && t.date ? t.date : defaultDate || "";
   $("#task-time").value = t && t.time ? t.time : "";
   $("#task-dur").value = t && t.duration ? t.duration : 60;
+  // התראות — רק כשמחוברים ליומן; תלוי אם יש שעה (אירוע עם שעה / של כל היום)
+  $("#task-rem-wrap").classList.toggle("hidden", !gcalConnected());
+  taskRem = reminderEditor($("#task-rem"), t ? (t.reminders === undefined ? null : t.reminders) : null, { isTimed: () => !!$("#task-time").value });
   const sel = $("#task-project");
   sel.innerHTML = "";
   for (const p of state.projects.filter((x) => x.status !== "dropped" || x.id === projectId)) {
@@ -252,6 +258,7 @@ function syncRepeatBox() {
   $("#task-repeat-hint").classList.toggle("hidden", !on);
 }
 $("#task-repeat-on").addEventListener("change", syncRepeatBox);
+$("#task-time").addEventListener("change", () => { if (taskRem) taskRem.rerender(); });
 $("#task-cancel").addEventListener("click", () => $("#task-modal").classList.add("hidden"));
 $("#task-delete").addEventListener("click", () => {
   if (!confirm("למחוק את המטלה?")) return;
@@ -272,6 +279,7 @@ $("#task-save").addEventListener("click", () => {
     date,
     time: date && $("#task-time").value ? $("#task-time").value : undefined, // בלי שעה = כל היום
     duration: date && $("#task-time").value ? Math.max(5, parseInt($("#task-dur").value, 10) || 60) : undefined,
+    reminders: taskRem && gcalConnected() ? taskRem.get() : (editingTaskId ? (state.tasks.find((x) => x.id === editingTaskId) || {}).reminders : null),
     repeat: repeatOn
       ? { every: Math.max(1, parseInt($("#task-repeat-every").value, 10) || 1), unit: $("#task-repeat-unit").value }
       : null,
