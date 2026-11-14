@@ -732,3 +732,49 @@ canvas { width: 100%; display: block; }
   }
   .modal { padding-right: 104px; }
 }
+
+/* ---- עץ 3: פרויקטים ומטלות ---- */
+.proj-limit {
+  background: rgba(232, 180, 76, 0.12);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+.proj-section { margin-bottom: 6px; }
+details.proj-section > summary { cursor: pointer; }
+.proj-card { cursor: pointer; padding: 12px 14px; margin-bottom: 8px; }
+.proj-card.status-frozen { opacity: 0.72; }
+.proj-card.status-done, .proj-card.status-dropped { opacity: 0.55; }
+.proj-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.proj-name { font-weight: 700; font-size: 1rem; }
+.proj-area {
+  font-size: 0.72rem; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px;
+}
+.proj-dates { font-size: 0.76rem; color: var(--muted); }
+.proj-next { margin-top: 6px; font-size: 0.9rem; }
+.proj-next.missing { color: var(--warn); font-size: 0.84rem; }
+.proj-meta { margin-top: 4px; font-size: 0.78rem; color: var(--muted); }
+.proj-meta .late, .task-due.late { color: var(--danger); }
+.proj-h3 { font-size: 0.95rem; margin: 12px 0 6px; }
+.task-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 2px; border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.task-row:last-child { border-bottom: none; }
+.task-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); margin-top: 1px; flex: none; }
+.task-row.done .task-title { text-decoration: line-through; color: var(--muted); }
+.task-body { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; cursor: pointer; }
+.task-title { font-size: 0.95rem; }
+.task-due { font-size: 0.74rem; color: var(--muted); border-radius: 6px; padding: 1px 6px; background: var(--card2); }
+.task-due.today { color: var(--accent); }
+.task-due.soon { color: var(--text); }
+.task-rep { font-size: 0.72rem; color: var(--muted); }
+@media (min-width: 900px) {
+  .proj-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 0 14px; align-items: start; }
+  #proj-lists .card { margin-bottom: 8px; }
+}

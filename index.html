@@ -327,19 +327,24 @@
     </div>
   </section>
 
-  <!-- ===== עץ 3: פרויקטים (שלב 2) ===== -->
+  <!-- ===== עץ 3: פרויקטים ומטלות ===== -->
   <section id="screen-projects" class="screen hidden">
     <header class="topbar">
       <div class="topbar-title">
         <h1>פרויקטים ומטלות</h1>
-        <div class="subtitle">בקרוב</div>
+        <div id="proj-subtitle" class="subtitle"></div>
       </div>
     </header>
-    <div class="card" style="text-align:center; padding: 24px 14px;">
-      <div style="font-size:2.2rem;">📁</div>
-      <p style="margin:8px 0 4px;">כאן ייכנסו הפרויקטים, המטלות והצעד הבא של כל אחד — כולל "שוטף" של הבית.</p>
-      <p class="hint" style="margin:0;">נבנה בשלב הבא. הכל יופיע גם בגאנט.</p>
+    <div class="toolbar">
+      <button id="proj-add" class="btn small">+ פרויקט</button>
+      <button id="proj-bulk" class="btn small ghost">📋 הוספה מהירה של כמה</button>
     </div>
+    <div id="proj-limit" class="proj-limit hidden"></div>
+    <div class="proj-grid">
+      <div id="proj-routine" class="card"></div>
+      <div id="proj-lists"></div>
+    </div>
+    <p class="footnote">כלל נגד התפזרות: עד 3 פרויקטים פעילים במקביל. "מוקפא" = החלטה מודעת לא לעשות את זה עכשיו — לא כישלון.</p>
   </section>
 
   <!-- ===== הגדרות ===== -->
@@ -605,6 +610,77 @@
     <div class="row gap">
       <button id="shop-item-save" class="btn primary grow">הוסף</button>
       <button id="shop-item-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל פרויקט -->
+<div id="proj-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="proj-modal-title">פרויקט חדש</h2>
+    <label>שם<input id="proj-name" type="text" placeholder="תיקון טלוויזיה / אפליקציית ערבית..."></label>
+    <div class="row gap">
+      <label class="grow">תחום<input id="proj-area" type="text" list="proj-areas" placeholder="בית"></label>
+      <label class="grow">סטטוס<select id="proj-status"></select></label>
+    </div>
+    <datalist id="proj-areas"></datalist>
+    <div id="proj-status-warn" class="edit-gap short hidden"></div>
+    <div class="row gap">
+      <label class="grow">התחלה<input id="proj-start" type="date"></label>
+      <label class="grow">יעד סיום<input id="proj-end" type="date"></label>
+    </div>
+    <label>👉 הצעד הבא (פעולה אחת, קטנה וברורה)<input id="proj-next" type="text" placeholder="להזמין חלק / לשלוח מייל ל..."></label>
+    <label>הערות<textarea id="proj-notes" rows="2"></textarea></label>
+    <div id="proj-tasks-wrap">
+      <h3 class="proj-h3">מטלות</h3>
+      <div id="proj-tasks"></div>
+      <button id="proj-task-add" class="btn small">+ מטלה</button>
+    </div>
+    <div class="row gap" style="margin-top:12px;">
+      <button id="proj-save" class="btn primary grow">שמור</button>
+      <button id="proj-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="proj-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל מטלה -->
+<div id="task-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="task-modal-title">מטלה</h2>
+    <label>מה עושים<input id="task-title" type="text" placeholder="להשקות עציצים / להחליף פילטר..."></label>
+    <div class="row gap">
+      <label class="grow">תאריך (לא חובה)<input id="task-date" type="date"></label>
+      <label class="grow">פרויקט<select id="task-project"></select></label>
+    </div>
+    <label class="row check"><input id="task-repeat-on" type="checkbox"> מטלה חוזרת</label>
+    <div id="task-repeat-box" class="row gap hidden">
+      <label class="grow">כל<input id="task-repeat-every" type="number" min="1" value="1" inputmode="numeric"></label>
+      <label class="grow">יחידה<select id="task-repeat-unit"><option value="day">ימים</option><option value="week" selected>שבועות</option><option value="month">חודשים</option></select></label>
+    </div>
+    <p id="task-repeat-hint" class="hint hidden">סימון ✓ מקדם את התאריך למופע הבא — המטלה לא נעלמת.</p>
+    <div class="row gap" style="margin-top:12px;">
+      <button id="task-save" class="btn primary grow">שמור</button>
+      <button id="task-delete" class="btn ghost danger hidden">🗑️</button>
+      <button id="task-cancel" class="btn ghost">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- מודאל הוספה מהירה -->
+<div id="bulk-modal" class="modal hidden">
+  <div class="modal-box">
+    <h2>📋 הוספה מהירה</h2>
+    <p class="hint">שורה = פרויקט. אפשר להדביק רשימה. שמות שכבר קיימים מדולגים.</p>
+    <textarea id="bulk-text" rows="8" placeholder="תיקון טלוויזיה&#10;שרת ביתי&#10;צמחים"></textarea>
+    <div class="row gap" style="margin-top:8px;">
+      <label class="grow">תחום לכולם<input id="bulk-area" type="text" list="proj-areas" placeholder="—"></label>
+      <label class="grow">סטטוס לכולם<select id="bulk-status"></select></label>
+    </div>
+    <p class="hint">טיפ: להכניס הכל כ"מוקפא", ואז לבחור 2–3 שעוברים ל"פעיל".</p>
+    <div class="row gap" style="margin-top:8px;">
+      <button id="bulk-save" class="btn primary grow">הוסף</button>
+      <button id="bulk-cancel" class="btn ghost">ביטול</button>
     </div>
   </div>
 </div>

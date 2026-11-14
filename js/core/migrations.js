@@ -1,4 +1,5 @@
 "use strict";
+import { ensureProjects } from "../projects/model.js";
 import { PULLUP_TYPES, RUN_DAYS, SLOT_KEYS, SLOT_LABELS, STRENGTH_DAYS } from "./constants.js";
 import { addDays, fromIso, iso, weekKeyOf } from "./dates.js";
 import { DEFAULT_EXLIB, DEFAULT_MEALS, DEFAULT_PRODUCTS, DEFAULT_WORKOUT_TEMPLATES, MENU_TEMPLATE } from "./defaults.js";
@@ -482,3 +483,6 @@ if (state.seedV < 12) {
   state.seedV = 12;
   save();
 }
+
+/* עץ 3: פרויקטים ומטלות — מבנה ריק + "שוטף" (לא דורס נתונים קיימים) */
+ensureProjects();
