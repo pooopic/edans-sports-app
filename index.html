@@ -12,9 +12,10 @@
 </head>
 <body>
 <main id="app">
+  <div id="subtabs" class="subtabs"></div>
 
   <!-- ===== מסך תפריט ===== -->
-  <section id="screen-menu" class="screen">
+  <section id="screen-menu" class="screen hidden">
     <header class="topbar">
       <button id="week-prev" class="iconbtn" title="שבוע קודם">‹</button>
       <div class="topbar-title">
@@ -168,19 +169,6 @@
       <div id="rwk-list"></div>
     </div>
 
-    <!-- ייצוא ליומן -->
-    <div class="card">
-      <div class="card-head"><h2>📅 ייצוא לוח שבועי ליומן</h2></div>
-      <div class="row gap">
-        <label class="grow">שעת אימון
-          <input id="ics-time" type="time" value="07:00">
-        </label>
-        <label class="grow">משך (דקות)
-          <input id="ics-dur" type="number" min="15" max="180" value="45" inputmode="numeric">
-        </label>
-      </div>
-      <button id="ics-export" class="btn small" style="margin-top:8px; width:100%;">⬇️ הורד קובץ ‎.ics (כוח א׳/ג׳/ה׳ · ריצה ב׳/ד׳/ו׳)</button>
-    </div>
     </div><!-- /wcol-b -->
     </div><!-- /workout-grid -->
 
@@ -191,13 +179,12 @@
   <section id="screen-plan" class="screen hidden">
     <header class="topbar">
       <div class="topbar-title">
-        <h1>תכנון אימונים</h1>
+        <h1>גאנט</h1>
         <div class="subtitle">גאנט 12 שבועות · הקש על תא לשיבוץ, על צומת לעריכה</div>
       </div>
     </header>
     <div class="toolbar" style="justify-content:center;">
       <button id="plan-undo" class="btn small ghost" disabled>↩️ בטל שינוי אחרון</button>
-      <button id="plan-ics" class="btn small">📅 ייצא את כל התוכנית ליומן גוגל (.ics)</button>
     </div>
     <div class="gantt-wrap">
       <div id="gantt"></div>
@@ -259,36 +246,6 @@
       <div class="topbar-title"><h1>התקדמות</h1></div>
     </header>
 
-    <div class="card">
-      <div class="card-head"><h2>🔄 סנכרון וגיבוי</h2></div>
-      <div id="sync-off">
-        <p class="hint">סנכרון אוטומטי בין הטלפון למחשב דרך חשבון ה-GitHub שלך: הנתונים נשמרים ב-Gist סודי בחשבון, וכל מכשיר מחובר מתעדכן אוטומטית — כולל כל הוי שסימנת. הנתונים נשארים אצלך בלבד.</p>
-        <details class="hint" style="margin-bottom:8px;">
-          <summary>איך יוצרים טוקן (פעם אחת, ~2 דקות)</summary>
-          <ol style="padding-inline-start:18px; margin:6px 0;">
-            <li>נכנסים ל-<a href="https://github.com/settings/tokens/new?scopes=gist&description=edan-tracker-sync" target="_blank" rel="noopener">github.com/settings/tokens/new</a> (מחוברים לחשבון)</li>
-            <li>ההרשאה היחידה שצריך: <b>gist</b> (כבר מסומנת בקישור) · Expiration: No expiration</li>
-            <li>Generate token ← מעתיקים ומדביקים כאן. את אותו טוקן מדביקים גם במכשיר השני.</li>
-          </ol>
-        </details>
-        <label>GitHub Token<input id="sync-token" type="password" placeholder="ghp_..." autocomplete="off"></label>
-        <button id="sync-connect" class="btn primary" style="width:100%; margin-top:8px;">🔗 חבר סנכרון</button>
-      </div>
-      <div id="sync-on" class="hidden">
-        <p class="hint">✅ הסנכרון פועל: כל שינוי נדחף אוטומטית, ופתיחת האפליקציה מושכת את הגרסה האחרונה מהמכשיר השני.</p>
-        <div class="row gap">
-          <button id="sync-now" class="btn grow">🔄 סנכרן עכשיו</button>
-          <button id="sync-disconnect" class="btn ghost danger">נתק</button>
-        </div>
-      </div>
-      <p class="hint" id="sync-status" style="margin:8px 0 4px;"></p>
-      <p class="hint" style="border-top:1px solid var(--line); padding-top:8px;">גיבוי ידני לקובץ (עובד גם בלי סנכרון; לא כולל תמונות):</p>
-      <div class="row gap">
-        <button id="data-export" class="btn grow">⬇️ ייצא נתונים</button>
-        <button id="data-import" class="btn grow ghost">⬆️ ייבא נתונים</button>
-      </div>
-      <input id="data-import-file" type="file" accept=".json,application/json" class="hidden">
-    </div>
 
     <div class="card streak-card">
       <div class="streak-num"><span id="streak-count">0</span> 🔥</div>
@@ -336,7 +293,6 @@
       <p class="hint">בכל תאריך: פרונט + צד. נשמר רק במכשיר שלך. לחיצה על תגית התנוחה בתמונה מחליפה פרונט/צד.</p>
       <div id="photo-compares"></div>
       <div id="photo-grid" class="photo-grid"></div>
-      <button id="measure-ics" class="btn small" style="width:100%; margin-top:10px;">📅 ייצא תזכורות מדידה ליומן (.ics)</button>
     </div>
 
     <div class="card">
@@ -371,17 +327,72 @@
     </div>
   </section>
 
+  <!-- ===== עץ 3: פרויקטים (שלב 2) ===== -->
+  <section id="screen-projects" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1>פרויקטים ומטלות</h1>
+        <div class="subtitle">בקרוב</div>
+      </div>
+    </header>
+    <div class="card" style="text-align:center; padding: 24px 14px;">
+      <div style="font-size:2.2rem;">📁</div>
+      <p style="margin:8px 0 4px;">כאן ייכנסו הפרויקטים, המטלות והצעד הבא של כל אחד — כולל "שוטף" של הבית.</p>
+      <p class="hint" style="margin:0;">נבנה בשלב הבא. הכל יופיע גם בגאנט.</p>
+    </div>
+  </section>
+
+  <!-- ===== הגדרות ===== -->
+  <section id="screen-settings" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-title"><h1>הגדרות</h1></div>
+    </header>
+
+    <div class="card">
+      <div class="card-head"><h2>🕖 שעת אימון ברירת מחדל</h2></div>
+      <p class="hint">משמשת את "סדר היום" בגאנט. האפליקציה לא כותבת ליומן גוגל.</p>
+      <div class="row gap">
+        <label class="grow">שעת אימון<input id="set-workout-time" type="time" value="07:00"></label>
+        <label class="grow">משך (דקות)<input id="set-workout-dur" type="number" min="15" max="180" value="45" inputmode="numeric"></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>🔄 סנכרון וגיבוי</h2></div>
+      <div id="sync-off">
+        <p class="hint">סנכרון אוטומטי בין הטלפון למחשב דרך חשבון ה-GitHub שלך: הנתונים נשמרים ב-Gist סודי בחשבון, וכל מכשיר מחובר מתעדכן אוטומטית — כולל כל הוי שסימנת. הנתונים נשארים אצלך בלבד.</p>
+        <details class="hint" style="margin-bottom:8px;">
+          <summary>איך יוצרים טוקן (פעם אחת, ~2 דקות)</summary>
+          <ol style="padding-inline-start:18px; margin:6px 0;">
+            <li>נכנסים ל-<a href="https://github.com/settings/tokens/new?scopes=gist&description=edan-tracker-sync" target="_blank" rel="noopener">github.com/settings/tokens/new</a> (מחוברים לחשבון)</li>
+            <li>ההרשאה היחידה שצריך: <b>gist</b> (כבר מסומנת בקישור) · Expiration: No expiration</li>
+            <li>Generate token ← מעתיקים ומדביקים כאן. את אותו טוקן מדביקים גם במכשיר השני.</li>
+          </ol>
+        </details>
+        <label>GitHub Token<input id="sync-token" type="password" placeholder="ghp_..." autocomplete="off"></label>
+        <button id="sync-connect" class="btn primary" style="width:100%; margin-top:8px;">🔗 חבר סנכרון</button>
+      </div>
+      <div id="sync-on" class="hidden">
+        <p class="hint">✅ הסנכרון פועל: כל שינוי נדחף אוטומטית, ופתיחת האפליקציה מושכת את הגרסה האחרונה מהמכשיר השני.</p>
+        <div class="row gap">
+          <button id="sync-now" class="btn grow">🔄 סנכרן עכשיו</button>
+          <button id="sync-disconnect" class="btn ghost danger">נתק</button>
+        </div>
+      </div>
+      <p class="hint" id="sync-status" style="margin:8px 0 4px;"></p>
+      <p class="hint" style="border-top:1px solid var(--line); padding-top:8px;">גיבוי ידני לקובץ (עובד גם בלי סנכרון; לא כולל תמונות):</p>
+      <div class="row gap">
+        <button id="data-export" class="btn grow">⬇️ ייצא נתונים</button>
+        <button id="data-import" class="btn grow ghost">⬆️ ייבא נתונים</button>
+      </div>
+      <input id="data-import-file" type="file" accept=".json,application/json" class="hidden">
+    </div>
+  </section>
+
 </main>
 
-<!-- ניווט תחתון -->
-<nav class="bottomnav">
-  <button data-screen="menu" class="navbtn active"><span>🍽️</span>תפריט</button>
-  <button data-screen="workout" class="navbtn"><span>🏋️</span>אימונים</button>
-  <button data-screen="plan" class="navbtn"><span>🗓️</span>תכנון</button>
-  <button data-screen="shopping" class="navbtn"><span>🛒</span>קניות</button>
-  <button data-screen="food" class="navbtn"><span>🥗</span>מזון</button>
-  <button data-screen="progress" class="navbtn"><span>📈</span>התקדמות</button>
-</nav>
+<!-- ניווט: 4 עצים (טלפון: תחתון · מחשב: עמודת צד) — נבנה ב-js/core/nav.js -->
+<nav id="treenav" class="bottomnav"></nav>
 
 <!-- מודאל עריכת יום -->
 <div id="modal" class="modal hidden">
@@ -502,7 +513,6 @@
       <label style="width:110px;">שעה (לא חובה)<input id="plan-time" type="time"></label>
     </div>
     <button id="plan-open-day" class="btn ghost" style="width:100%; margin:4px 0 4px;">🏋️ פתח את יום האימון הזה (צפייה ועריכה)</button>
-    <button id="plan-gcal" class="btn ghost" style="width:100%; margin:0 0 8px;">📅 הוסף ליומן גוגל</button>
     <div class="row gap">
       <button id="plan-save" class="btn primary grow">שמור</button>
       <button id="plan-delete" class="btn ghost danger hidden">🗑️</button>
@@ -554,7 +564,6 @@
     <div id="sched-insight" class="hint" style="border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-top:12px;"></div>
     <label style="margin-top:10px;">📝 הערה שלך ליום<textarea id="sched-note" rows="2" placeholder="מה חשוב לזכור ביום הזה..."></textarea></label>
     <button id="sched-open-day" class="btn primary" style="width:100%; margin-top:12px;">🏋️ פתח את יום האימון</button>
-    <button id="sched-gcal" class="btn ghost" style="width:100%; margin-top:8px;">📅 הוסף את האימון ליומן גוגל</button>
     <button id="sched-cancel" class="btn ghost" style="width:100%; margin-top:8px;">סגור</button>
   </div>
 </div>
@@ -612,6 +621,6 @@
   </div>
 </div>
 
-<script src="app.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

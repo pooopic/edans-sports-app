@@ -678,3 +678,57 @@ canvas { width: 100%; display: block; }
 .modal-box h2 { margin: 0 0 10px; font-size: 1.1rem; }
 .modal-box label { margin-bottom: 10px; }
 .modal-box textarea, .modal-box input { margin-top: 4px; }
+
+/* ---- ניווט 4 עצים: לשוניות משנה + עמודת צד במחשב ---- */
+.subtabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 2px 2px;
+  scrollbar-width: none;
+}
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs-title { color: var(--muted); font-size: 0.8rem; font-weight: 700; margin-inline-end: 4px; white-space: nowrap; }
+.subtab {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.subtab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.navbtn { cursor: pointer; }
+.navbtn-settings { flex: 0.7; }
+
+@media (min-width: 900px) {
+  /* בימין (RTL): עמודת עצים קבועה, התוכן לצידה */
+  .bottomnav {
+    top: 0; bottom: 0; left: auto; right: 0;
+    width: 104px;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 14px 0;
+    border-top: none;
+    border-left: 1px solid var(--line);
+  }
+  .navbtn { flex: 0 0 auto; padding: 12px 0; font-size: 0.85rem; border-radius: 10px; margin: 0 8px; }
+  .navbtn:hover { background: rgba(255, 255, 255, 0.05); }
+  .navbtn.active { background: rgba(76, 208, 138, 0.12); }
+  .navbtn-settings { margin-top: auto; }
+  body { padding-right: 104px; }
+  #app { padding-bottom: 24px; }
+  .subtabs { padding-top: 12px; }
+  /* הגאנט ברוחב מלא — בלי לגלוש מתחת לעמודת הצד */
+  .gantt-wrap {
+    width: calc(100vw - 104px - 3vw);
+    margin-left: calc(50% - (100vw - 104px - 3vw) / 2);
+    margin-right: calc(50% - (100vw - 104px - 3vw) / 2);
+  }
+  .modal { padding-right: 104px; }
+}
