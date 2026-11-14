@@ -1,6 +1,6 @@
 "use strict";
 import { PULLUP_TYPES, RUN_DAYS, STRENGTH_DAYS } from "../core/constants.js";
-import { fromIso } from "../core/dates.js";
+import { fromIso, todayIso } from "../core/dates.js";
 import { save, state } from "../core/state.js";
 
 /* ---------- אימון ---------- */
@@ -20,11 +20,16 @@ export function defaultSets(lib) {
 }
 
 /* המשכיות פר-תרגיל: הסטים האחרונים של אותו תרגיל, מכל אימון קודם שהוא הופיע בו */
+/* אימון "אוטומטי" (auto) = נוצר רק כי פתחו את היום במסך, ועוד לא נגעו בו.
+   הוא לא נחשב "אימון קודם" (המשכיות סטים, חבל, Curl מתחלף), ובימים שעוד לא עברו
+   הוא נבנה מחדש בכל פתיחה — כך שהתקדמות באימון של היום ושינוי בתכנון מגיעים גם אליו. */
+const isReal = (w) => w && (!w.auto || w.done);
+
 export function lastSetsFor(exId, beforeIso) {
   const keys = Object.keys(state.workouts).filter((k) => k < beforeIso).sort().reverse();
   for (const k of keys) {
     const w = state.workouts[k];
-    if (w.ex && w.ex[exId] && w.ex[exId].length) return w.ex[exId];
+    if (isReal(w) && w.ex && w.ex[exId] && w.ex[exId].length) return w.ex[exId];
   }
   return null;
 }
@@ -47,36 +52,49 @@ export function dayTemplate(dateIso) {
   return templateById(STRENGTH_DAYS.includes(wd) ? "t-strength" : "t-run") || state.workoutTemplates[0];
 }
 
+function buildWorkout(dateIso) {
+  const prev = lastWorkoutBefore(dateIso);
+  const prevStrength = lastStrengthWorkoutBefore(dateIso);
+  const tpl = dayTemplate(dateIso);
+  const exList = tpl ? [...tpl.exerciseIds] : [];
+  const ex = {};
+  for (const id of exList) ex[id] = freshSetsFor(id, dateIso);
+  return {
+    curlVariant: prevStrength && prevStrength.curlVariant === "hammer" ? "regular" : "hammer",
+    ex, exList,
+    run: { km: 0, minutes: 0 },
+    ropeMode: prev ? (prev.ropeMode || "count") : "count",
+    ropeMinutes: 0, ropeRounds: 10,
+    ropeJumpsPerSet: prev ? (prev.ropeJumpsPerSet || 50) : 50,
+    ropeTargetSets: prev ? (prev.ropeTargetSets || 6) : 6,
+    ropeSetsDone: 0,
+    done: false,
+    auto: true,
+  };
+}
 export function ensureWorkout(dateIso) {
-  if (!state.workouts[dateIso]) {
-    const prev = lastWorkoutBefore(dateIso);
-    const prevStrength = lastStrengthWorkoutBefore(dateIso);
-    const tpl = dayTemplate(dateIso);
-    const exList = tpl ? [...tpl.exerciseIds] : [];
-    const ex = {};
-    for (const id of exList) ex[id] = freshSetsFor(id, dateIso);
-    state.workouts[dateIso] = {
-      curlVariant: prevStrength && prevStrength.curlVariant === "hammer" ? "regular" : "hammer",
-      ex, exList,
-      run: { km: 0, minutes: 0 },
-      ropeMode: prev ? (prev.ropeMode || "count") : "count",
-      ropeMinutes: 0, ropeRounds: 10,
-      ropeJumpsPerSet: prev ? (prev.ropeJumpsPerSet || 50) : 50,
-      ropeTargetSets: prev ? (prev.ropeTargetSets || 6) : 6,
-      ropeSetsDone: 0,
-      done: false,
-    };
+  const w = state.workouts[dateIso];
+  if (!w) {
+    state.workouts[dateIso] = buildWorkout(dateIso);
     save();
+  } else if (w.auto && !w.done && dateIso >= todayIso()) {
+    const fresh = buildWorkout(dateIso);
+    if (JSON.stringify(fresh) !== JSON.stringify(w)) { state.workouts[dateIso] = fresh; save(); }
   }
   return state.workouts[dateIso];
 }
+/* נקרא לפני כל עריכה של המשתמש ביום המוצג — מכאן האימון "אמיתי" ונשמר כמו שהוא */
+export function markWorkoutTouched(dateIso) {
+  const w = state.workouts[dateIso];
+  if (w && w.auto) delete w.auto;
+}
 export function lastWorkoutBefore(dateIso) {
-  const keys = Object.keys(state.workouts).filter((k) => k < dateIso).sort();
+  const keys = Object.keys(state.workouts).filter((k) => k < dateIso && isReal(state.workouts[k])).sort();
   return keys.length ? state.workouts[keys[keys.length - 1]] : null;
 }
 export function lastStrengthWorkoutBefore(dateIso) {
   const keys = Object.keys(state.workouts)
-    .filter((k) => k < dateIso && STRENGTH_DAYS.includes(fromIso(k).getDay()))
+    .filter((k) => k < dateIso && isReal(state.workouts[k]) && STRENGTH_DAYS.includes(fromIso(k).getDay()))
     .sort();
   return keys.length ? state.workouts[keys[keys.length - 1]] : null;
 }

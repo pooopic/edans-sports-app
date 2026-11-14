@@ -5,7 +5,7 @@ import { addDays, fromIso, shortDate, todayIso } from "../core/dates.js";
 import { newId, round1 } from "../core/model.js";
 import { save, state, view } from "../core/state.js";
 import { $, $$, beep, enableDrag, escapeHtml } from "../core/ui.js";
-import { defaultSets, exLibById, freshSetsFor, getWorkout, lastSetsFor, rwkById, templateById } from "./model.js";
+import { defaultSets, exLibById, freshSetsFor, getWorkout, lastSetsFor, markWorkoutTouched, rwkById, templateById } from "./model.js";
 import { renderRunWorkouts } from "./runbuilder.js";
 
 /* ============================ מסך אימונים ============================ */
@@ -701,12 +701,15 @@ export function ropeFinish() {
   clearInterval(rope.interval);
   rope.running = false;
   beep(880, 0.2); setTimeout(() => beep(1100, 0.2), 220); setTimeout(() => beep(1320, 0.4), 440);
-  const w = getWorkout(view.workoutDate);
+  // נשמר ליום שבו הטיימר הופעל — גם אם בינתיים עברו במסך ליום אחר
+  const date = rope.date || view.workoutDate;
+  markWorkoutTouched(date);
+  const w = getWorkout(date);
   const minutes = rope.totalRounds; // כל סבב = 30 עבודה + 30 מנוחה = דקה
   w.ropeMinutes = Math.max(w.ropeMinutes || 0, minutes);
   w.ropeRounds = rope.totalRounds;
   save();
-  $("#rope-minutes").value = w.ropeMinutes;
+  if (date === view.workoutDate) $("#rope-minutes").value = w.ropeMinutes;
   $("#rope-phase").textContent = "🎉 סיימת!";
   $("#rope-phase").className = "timer-phase work";
   $("#rope-clock").textContent = "0:00";
@@ -719,6 +722,7 @@ $("#rope-start").addEventListener("click", () => {
     rope.running = false;
   } else {
     rope.totalRounds = parseInt($("#rope-rounds").value, 10) || 10;
+    rope.date = view.workoutDate;
     rope.running = true;
     beep(880, 0.2);
     rope.interval = setInterval(ropeTick, 1000);
@@ -759,3 +763,15 @@ $$(".rest-btn").forEach((btn) => {
 
 registerScreen("workout", renderWorkout);
 ropeRender();
+
+/* כל עריכה של המשתמש במסך האימון (או במודאלים שלו) הופכת את היום לאימון "אמיתי".
+   מאזין capture רץ לפני המאזין של הכפתור/שדה עצמו — כלומר לפני ה-save() שלו.
+   ניווט בין ימים (שורת הצ'יפים) לא נחשב עריכה. */
+function touchFromEvent(e) {
+  if (e.target.closest && e.target.closest("#workout-day-chips, .topbar")) return;
+  if (e.type === "click" && !e.target.closest("button, input[type=checkbox], .food-item")) return;
+  markWorkoutTouched(view.workoutDate);
+}
+for (const id of ["#screen-workout", "#ex-modal", "#wt-modal"]) {
+  for (const type of ["input", "change", "click"]) $(id).addEventListener(type, touchFromEvent, true);
+}
