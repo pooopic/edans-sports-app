@@ -41,12 +41,12 @@ $("#gcal-connect").addEventListener("click", async () => { await gcalConnect(); 
 $("#gcal-reauth").addEventListener("click", async () => { await gcalConnect(); renderGcal(); });
 $("#gcal-sync").addEventListener("click", () => gcalSync(true));
 $("#gcal-disconnect").addEventListener("click", () => {
-  if (!confirm("לנתק את יומן גוגל? האירועים שכבר נוצרו יישארו ביומן \"המעקב של עדן\" (אפשר למחוק אותו בכפתור 🗑️).")) return;
+  if (!confirm("לנתק את יומן גוגל? האירועים שכבר נוצרו יישארו ביומן \"המעקב של עידן\" (אפשר למחוק אותו בכפתור 🗑️).")) return;
   gcalDisconnect();
   renderGcal();
 });
 $("#gcal-delete").addEventListener("click", async () => {
-  if (!confirm("למחוק מגוגל את היומן \"המעקב של עדן\" עם כל האירועים שהאפליקציה יצרה? היומן הראשי שלך לא מושפע.")) return;
+  if (!confirm("למחוק מגוגל את היומן \"המעקב של עידן\" עם כל האירועים שהאפליקציה יצרה? היומן הראשי שלך לא מושפע.")) return;
   if (gcalNeedsAuth() && !(await gcalConnect())) return;
   await gcalDeleteCalendar();
   renderGcal();

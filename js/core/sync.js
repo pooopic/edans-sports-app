@@ -135,6 +135,9 @@ function adoptRemoteState(remoteState) {
   const cfg = syncCfg();
   remoteState.settings = remoteState.settings || {};
   if (cfg) remoteState.settings.sync = cfg; // שומרים את חיבור הסנכרון של המכשיר הזה
+  if (state.gcal && state.gcal.calendarId && !(remoteState.gcal && remoteState.gcal.calendarId)) {
+    remoteState.gcal = { ...(remoteState.gcal || {}), calendarId: state.gcal.calendarId }; // וגם את חיבור יומן גוגל
+  }
   localStorage.setItem(STORE_KEY, JSON.stringify(remoteState));
   location.reload();
 }
@@ -204,7 +207,7 @@ async function syncConnect(token) {
       const created = await ghApi("/gists", {
         method: "POST",
         body: JSON.stringify({
-          description: "המעקב של עדן — סנכרון בין מכשירים",
+          description: "המעקב של עידן — סנכרון בין מכשירים",
           public: false,
           files: { [SYNC_FILE]: { content: syncPayloadStr(Date.now()) } },
         }),

@@ -1,6 +1,6 @@
 "use strict";
 /* חיבור ליומן גוגל.
-   כתיבה: רק ליומן נפרד שהאפליקציה יוצרת ("המעקב של עדן"). ההרשאה calendar.app.created
+   כתיבה: רק ליומן נפרד שהאפליקציה יוצרת ("המעקב של עידן"). ההרשאה calendar.app.created
    מאפשרת לגעת רק ביומנים שהאפליקציה יצרה — אין גישת כתיבה ליומן הראשי.
    קריאה: אירועי היומן הראשי מוצגים בגאנט כשכבה אפורה (calendar.events.readonly).
 
@@ -17,10 +17,14 @@ import { onSave, save, state } from "./state.js";
 import { resolveReminders } from "./reminders.js";
 
 export const GCAL_CLIENT_ID = "866743160010-lvu8uirnda8v9uhgunh8jgqh9bbnjbf4.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.events.readonly";
+// calendarlist.readonly: רק כדי למצוא את היומן של האפליקציה אם המזהה שלו אבד (במקום ליצור יומן שני)
+const SCOPES = "https://www.googleapis.com/auth/calendar.app.created https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendarlist.readonly";
+const CAL_MARK = "נוצר ומנוהל על ידי המעקב של עידן";
+const OLD_CAL_NAME = "המעקב של עדן"; // שם קודם (שגיאת כתיב) — יומן כזה מזוהה ומקבל את השם הנכון
+const OLD_CAL_MARK = "נוצר ומנוהל על ידי המעקב של עדן";
 const API = "https://www.googleapis.com/calendar/v3";
 const TZ = "Asia/Jerusalem";
-const CAL_NAME = "המעקב של עדן";
+const CAL_NAME = "המעקב של עידן";
 const TOKEN_KEY = "edan-gcal-token";
 const META_KEY = "edan-gcal-meta";
 const PAST_DAYS = 30; // אירועים שעברו לפני יותר מזה — לא נוגעים בהם
@@ -32,11 +36,25 @@ export function onGcalStatus(fn) { listeners.push(fn); }
 let status = { text: "", error: false, busy: false };
 function setStatus(text, error = false) {
   status = { ...status, text, error };
+  writeJson(META_KEY, { ...readJson(META_KEY), lastStatus: { text, error, at: Date.now() } }); // נשאר גם אחרי רענון
   for (const fn of listeners) { try { fn(status); } catch (e) {} }
 }
-export const gcalStatus = () => status;
+export const gcalStatus = () => (status.text ? status : (readJson(META_KEY).lastStatus || status));
 
-export const gcalConnected = () => !!(state.gcal && state.gcal.calendarId);
+/* מזהה היומן נשמר גם ב-state (משותף למכשירים דרך ה-Gist) וגם במכשיר עצמו —
+   כדי שסנכרון ממכשיר אחר (שעוד לא מכיר את היומן) לא ינתק את החיבור */
+const LOCAL_CAL_KEY = "edan-gcal-calendar";
+function calendarId() {
+  if (state.gcal && state.gcal.calendarId) return state.gcal.calendarId;
+  try { return localStorage.getItem(LOCAL_CAL_KEY) || null; } catch (e) { return null; }
+}
+function setCalendarId(id) {
+  state.gcal = { ...(state.gcal || {}) };
+  if (id) state.gcal.calendarId = id; else delete state.gcal.calendarId;
+  try { id ? localStorage.setItem(LOCAL_CAL_KEY, id) : localStorage.removeItem(LOCAL_CAL_KEY); } catch (e) {}
+  save();
+}
+export const gcalConnected = () => !!calendarId();
 function readJson(key) { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { return {}; } }
 function writeJson(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
 function validToken() {
@@ -98,18 +116,52 @@ async function api(path, opts = {}) {
   return data;
 }
 
-async function ensureCalendar() {
-  if (state.gcal && state.gcal.calendarId) {
-    try { await api("/calendars/" + encodeURIComponent(state.gcal.calendarId)); return; } catch (e) {
-      if (e.status !== 404 && e.status !== 403) throw e; // היומן נמחק בגוגל — יוצרים חדש
+/* יומן שנוצר בשם הישן — משנים לשם הנכון (פעם אחת) */
+async function fixOldName(id) {
+  const meta = readJson(META_KEY);
+  if (meta.renamed === id) return;
+  try {
+    const cal = await api("/calendars/" + encodeURIComponent(id));
+    if (cal.summary === OLD_CAL_NAME || (cal.description || "").startsWith(OLD_CAL_MARK)) {
+      await api("/calendars/" + encodeURIComponent(id), {
+        method: "PATCH",
+        body: JSON.stringify({ summary: CAL_NAME, description: CAL_MARK + ". שינויים — באפליקציה." }),
+      });
     }
+    writeJson(META_KEY, { ...readJson(META_KEY), renamed: id });
+  } catch (e) { /* לא קריטי */ }
+}
+async function ensureCalendar() {
+  const known = calendarId();
+  if (known) {
+    try {
+      await api("/calendars/" + encodeURIComponent(known));
+      if (!(state.gcal && state.gcal.calendarId === known)) setCalendarId(known); // משלים ב-state אם חסר
+      await fixOldName(known);
+      return;
+    } catch (e) {
+      if (e.status !== 404 && e.status !== 403) throw e; // היומן נמחק בגוגל — מחפשים / יוצרים
+    }
+  }
+  // יומן שהאפליקציה כבר יצרה (למשל כשהחיבור נקטע באמצע) — משתמשים בו, לא יוצרים שני
+  try {
+    const list = await api("/users/me/calendarList?minAccessRole=owner&maxResults=250");
+    const isMine = (c) => [CAL_MARK, OLD_CAL_MARK].some((m) => (c.description || "").startsWith(m)) && [CAL_NAME, OLD_CAL_NAME].includes(c.summary);
+    const mine = (list.items || []).find(isMine);
+    if (mine) {
+      await api("/calendars/" + encodeURIComponent(mine.id)); // מוודא שיש לנו גישה אליו
+      setCalendarId(mine.id);
+      await fixOldName(mine.id);
+      return;
+    }
+  } catch (e) {
+    if (e instanceof NeedAuth) throw e; // בלי הרשאת רשימה — ממשיכים ליצירה
   }
   const cal = await api("/calendars", {
     method: "POST",
-    body: JSON.stringify({ summary: CAL_NAME, timeZone: TZ, description: "נוצר ומנוהל על ידי המעקב של עדן. שינויים — באפליקציה." }),
+    body: JSON.stringify({ summary: CAL_NAME, timeZone: TZ, description: CAL_MARK + ". שינויים — באפליקציה." }),
   });
-  state.gcal = { ...(state.gcal || {}), calendarId: cal.id };
-  save();
+  setCalendarId(cal.id);
 }
 
 /* ---------- מה צריך להיות ביומן ---------- */
@@ -143,7 +195,7 @@ export function desiredEvents() {
     const routine = proj.id === ROUTINE_ID;
     add("t:" + t.id, {
       summary: (routine ? "🔁 " : "📁 ") + t.title + (routine ? "" : ` · ${proj.name}`),
-      description: (routine ? "שוטף" : `פרויקט: ${proj.name}`) + "\nמהמעקב של עדן — עריכה באפליקציה.",
+      description: (routine ? "שוטף" : `פרויקט: ${proj.name}`) + "\nמהמעקב של עידן — עריכה באפליקציה.",
       ...timeFields(t.date, t.time, t.duration),
       reminders: { useDefault: false, overrides: resolveReminders(t.reminders, !!t.time).map((minutes) => ({ method: "popup", minutes })) },
     });
@@ -153,7 +205,7 @@ export function desiredEvents() {
     if (!WORKOUT_LANES[n.lane] || !n.date || n.date < from) continue;
     add("n:" + n.id, {
       summary: `${WORKOUT_LANES[n.lane]} ${n.label}`,
-      description: "אימון מהתכנון במעקב של עדן — עריכה באפליקציה.",
+      description: "אימון מהתכנון במעקב של עידן — עריכה באפליקציה.",
       ...timeFields(n.date, n.time || s.workoutTime || "07:00", s.workoutDur || 45),
       reminders: { useDefault: false, overrides: resolveReminders(n.reminders, true).map((minutes) => ({ method: "popup", minutes })) },
     });
@@ -173,12 +225,12 @@ export async function gcalSync(force) {
   const want = desiredEvents();
   const wantHash = hashOf(Object.keys(want).sort().map((k) => k + want[k].extendedProperties.private.h));
   const meta = gcalMeta();
-  if (!force && meta.wantHash === wantHash && meta.calendarId === state.gcal.calendarId) return; // שום דבר לא השתנה
+  if (!force && meta.wantHash === wantHash && meta.calendarId === calendarId()) return; // שום דבר לא השתנה
   syncing = true;
   setStatus("מעדכן את היומן...");
   try {
     await ensureCalendar();
-    const cal = encodeURIComponent(state.gcal.calendarId);
+    const cal = encodeURIComponent(calendarId());
     const timeMin = new Date(fromIso(addDays(todayIso(), -PAST_DAYS))).toISOString();
     const have = {};
     let pageToken = "";
@@ -208,7 +260,7 @@ export async function gcalSync(force) {
       if (want[key]) continue;
       for (const ev of list) { await api(`/calendars/${cal}/events/${encodeURIComponent(ev.id)}`, { method: "DELETE" }); removed++; }
     }
-    writeJson(META_KEY, { wantHash, calendarId: state.gcal.calendarId, lastSync: Date.now() });
+    writeJson(META_KEY, { ...readJson(META_KEY), wantHash, calendarId: calendarId(), lastSync: Date.now() });
     const changes = created + updated + removed;
     setStatus(`היומן מעודכן ✓ ${new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}` +
       (changes ? ` (${created} חדשים · ${updated} עודכנו · ${removed} נמחקו)` : ""));
@@ -227,16 +279,21 @@ onSave(() => {
 
 /* ---------- חיבור / ניתוק (מלחיצה) ---------- */
 export async function gcalConnect() {
+  // בזמן ההתחברות אסור לרענן את הדף (עדכון גרסה ברקע) — זה מה שקטע חיבור באמצע
+  document.documentElement.dataset.busy = "gcal";
   try {
     setStatus("מתחבר לגוגל...");
     await loadGis();
     await requestToken();
+    setStatus("מחובר — מכין את היומן...");
     await ensureCalendar();
     await gcalSync(true);
     return true;
   } catch (e) {
     setStatus("ההתחברות ליומן נכשלה: " + e.message, true);
     return false;
+  } finally {
+    delete document.documentElement.dataset.busy;
   }
 }
 export function gcalDisconnect() {
@@ -244,17 +301,16 @@ export function gcalDisconnect() {
   if (t && window.google && window.google.accounts) { try { window.google.accounts.oauth2.revoke(t, () => {}); } catch (e) {} }
   writeJson(TOKEN_KEY, {});
   writeJson(META_KEY, {});
-  if (state.gcal) { delete state.gcal.calendarId; save(); }
+  setCalendarId(null);
   readCache.clear();
   setStatus("היומן נותק. האירועים שכבר נוצרו נשארו ביומן \"" + CAL_NAME + "\" בגוגל.");
 }
 /* מחיקת היומן של האפליקציה מגוגל — כל האירועים שלה נעלמים בבת אחת */
 export async function gcalDeleteCalendar() {
   try {
-    await api("/calendars/" + encodeURIComponent(state.gcal.calendarId), { method: "DELETE" });
+    await api("/calendars/" + encodeURIComponent(calendarId()), { method: "DELETE" });
     writeJson(META_KEY, {});
-    delete state.gcal.calendarId;
-    save();
+    setCalendarId(null);
     setStatus("היומן \"" + CAL_NAME + "\" נמחק מגוגל עם כל האירועים שלו.");
     return true;
   } catch (e) {

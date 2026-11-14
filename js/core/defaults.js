@@ -211,7 +211,7 @@ export const DEFAULT_MEALS = [
   ]},
   { id: "m-cabbage", name: "כרוב ממולא בבשר (מנה ~3 יח׳)", items: [
     { productId: "p-veg", grams: 120 },         // עלי כרוב + עגבניות הרוטב
-    { productId: "p-beef", grams: 120 },        // גרסת עדן: קילו בשר לבאטץ' — מילוי בשרי
+    { productId: "p-beef", grams: 120 },        // גרסת עידן: קילו בשר לבאטץ' — מילוי בשרי
     { productId: "p-rice", grams: 70 },
     { productId: "p-oil", grams: 10 },
   ]},

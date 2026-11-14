@@ -1,6 +1,6 @@
 "use strict";
 /* ============================================================
-   המעקב של עדן — נקודת כניסה.
+   המעקב של עידן — נקודת כניסה.
    סדר ה-import חשוב: state ← מיגרציות ← מסכים. כל מסך נרשם לניווט בעצמו.
    כל הנתונים נשמרים מקומית ב-localStorage (המפתח edan-tracker-v1).
    ============================================================ */
@@ -36,9 +36,11 @@ if ("serviceWorker" in navigator) {
   });
   // כשגרסה חדשה נטענה ברקע והשתלטה — רענון אוטומטי חד-פעמי כדי להציג אותה מיד
   let reloadedForUpdate = false;
+  // (לא באמצע פעולה רגישה — למשל התחברות ליומן גוגל: מחכים שתסתיים)
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (reloadedForUpdate) return;
     reloadedForUpdate = true;
-    location.reload();
+    const reloadWhenIdle = () => (document.documentElement.dataset.busy ? setTimeout(reloadWhenIdle, 1000) : location.reload());
+    reloadWhenIdle();
   });
 }

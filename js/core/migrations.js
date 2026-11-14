@@ -203,7 +203,7 @@ if (state.seedV < 11) {
   save();
 }
 
-/* שדרוג 13: כרוב ממולא בגרסה הבשרית של עדן (קילו בשר לבאטץ', פחות אורז) */
+/* שדרוג 13: כרוב ממולא בגרסה הבשרית של עידן (קילו בשר לבאטץ', פחות אורז) */
 if (state.seedV === 12) {
   const cab = mealById("m-cabbage");
   const isDefault = cab && JSON.stringify(cab.items) === JSON.stringify([
