@@ -11,7 +11,8 @@ import { newId } from "../core/model.js";
 import { save, state } from "../core/state.js";
 
 export const ROUTINE_ID = "proj-routine"; // "שוטף": תחזוקת בית ויום-יום — לא נספר במגבלת הפעילים
-export const ACTIVE_LIMIT = 3;            // אזהרה בלבד, לא חסימה
+/* מגבלת פעילים — אופציונלית (הגדרות). 0 = בלי מגבלה (ברירת מחדל). אזהרה בלבד, לא חסימה */
+export const activeLimit = () => (state.settings && state.settings.activeLimit) || 0;
 
 export const STATUSES = {
   active: { label: "פעיל", icon: "🟢" },

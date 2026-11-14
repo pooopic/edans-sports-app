@@ -363,7 +363,7 @@
       <div id="proj-routine" class="card"></div>
       <div id="proj-lists"></div>
     </div>
-    <p class="footnote">כלל נגד התפזרות: עד 3 פרויקטים פעילים במקביל. "מוקפא" = החלטה מודעת לא לעשות את זה עכשיו — לא כישלון.</p>
+    <p class="footnote">"מוקפא" = החלטה מודעת לא לעשות את זה עכשיו — לא כישלון.</p>
   </section>
 
   <!-- ===== הגדרות ===== -->
@@ -371,6 +371,11 @@
     <header class="topbar">
       <div class="topbar-title"><h1>הגדרות</h1></div>
     </header>
+
+    <div class="card">
+      <div class="card-head"><h2>📁 פרויקטים פעילים</h2></div>
+      <label>אזהרה כשיש יותר מ-X פעילים (ריק או 0 = בלי מגבלה)<input id="set-active-limit" type="number" min="0" inputmode="numeric" placeholder="בלי מגבלה"></label>
+    </div>
 
     <div class="card">
       <div class="card-head"><h2>🕖 שעת אימון ברירת מחדל</h2></div>
@@ -700,7 +705,7 @@
       <label class="grow">תחום לכולם<input id="bulk-area" type="text" list="proj-areas" placeholder="—"></label>
       <label class="grow">סטטוס לכולם<select id="bulk-status"></select></label>
     </div>
-    <p class="hint">טיפ: להכניס הכל כ"מוקפא", ואז לבחור 2–3 שעוברים ל"פעיל".</p>
+    <p class="hint">אפשר לשנות סטטוס לכל פרויקט אחר כך.</p>
     <div class="row gap" style="margin-top:8px;">
       <button id="bulk-save" class="btn primary grow">הוסף</button>
       <button id="bulk-cancel" class="btn ghost">ביטול</button>

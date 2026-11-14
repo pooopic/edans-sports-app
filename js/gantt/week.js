@@ -10,7 +10,7 @@ import { registerScreen, showScreen } from "../core/nav.js";
 import { proteinMin, state, view } from "../core/state.js";
 import { $, escapeHtml } from "../core/ui.js";
 import { dayTemplate, planNodeFor } from "../fitness/model.js";
-import { ACTIVE_LIMIT, ROUTINE_ID, activeProjects, isRoutine } from "../projects/model.js";
+import { ROUTINE_ID, activeLimit, activeProjects, isRoutine } from "../projects/model.js";
 import { openProjectEditor, openTaskEditor } from "../projects/projects.js";
 import { projectBars, projectColor, taskChip, taskOccurrences } from "./items.js";
 import {
@@ -120,13 +120,13 @@ function renderFocus(occ) {
   const tasksCount = occ.filter((o) => !o.projected && !o.done).length;
   const head = document.createElement("div");
   head.className = "wk-focus-head";
-  head.innerHTML = `<b>🎯 פוקוס</b> <span class="hint" style="margin:0;">${active.length}/${ACTIVE_LIMIT} פעילים · ${tasksCount} מטלות השבוע${late ? ` · <span class="late">${late} באיחור</span>` : ""}</span>`;
+  head.innerHTML = `<b>🎯 פוקוס</b> <span class="hint" style="margin:0;">${active.length} פעילים · ${tasksCount} מטלות השבוע${late ? ` · <span class="late">${late} באיחור</span>` : ""}</span>`;
   box.appendChild(head);
-  if (active.length > ACTIVE_LIMIT) {
-    box.insertAdjacentHTML("beforeend", `<div class="wk-warn">⚠️ ${active.length} פעילים — יותר מדי במקביל. מה מקפיאים?</div>`);
+  if (activeLimit() && active.length > activeLimit()) {
+    box.insertAdjacentHTML("beforeend", `<div class="wk-warn">⚠️ ${active.length} פעילים — מעל המגבלה שהגדרת (${activeLimit()}).</div>`);
   }
   if (!active.length) {
-    box.insertAdjacentHTML("beforeend", '<div class="hint" style="margin:4px 0 0;">אין פרויקטים פעילים. בחר 2–3 בעץ 📁 פרויקטים.</div>');
+    box.insertAdjacentHTML("beforeend", '<div class="hint" style="margin:4px 0 0;">אין פרויקטים פעילים. סמן פרויקטים כ"פעיל" בעץ 📁 פרויקטים.</div>');
     return;
   }
   const list = document.createElement("div");

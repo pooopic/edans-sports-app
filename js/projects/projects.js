@@ -7,7 +7,7 @@ import { $, escapeHtml } from "../core/ui.js";
 import { state } from "../core/state.js";
 import { shortDate, todayIso } from "../core/dates.js";
 import {
-  ACTIVE_LIMIT, ROUTINE_ID, STATUSES, activeProjects, allAreas, bulkAddProjects, deleteProject,
+  ROUTINE_ID, activeLimit, STATUSES, activeProjects, allAreas, bulkAddProjects, deleteProject,
   deleteTask, dueLabel, isRoutine, openTasksSorted, projectById, repeatLabel, saveProject,
   saveTask, tasksOf, toggleTaskDone,
 } from "./model.js";
@@ -41,9 +41,11 @@ function renderProjects() {
   const active = activeProjects();
   $("#proj-subtitle").textContent = `${active.length} פעילים · ${state.projects.filter((p) => p.status === "frozen").length} מוקפאים`;
   const lim = $("#proj-limit");
-  lim.classList.toggle("hidden", active.length <= ACTIVE_LIMIT);
-  if (active.length > ACTIVE_LIMIT) {
-    lim.innerHTML = `⚠️ <b>${active.length} פרויקטים פעילים</b> — יותר מ-${ACTIVE_LIMIT} זה פיזור. מה מהם אפשר להקפיא עכשיו?`;
+  const limit = activeLimit();
+  const over = limit && active.length > limit;
+  lim.classList.toggle("hidden", !over);
+  if (over) {
+    lim.innerHTML = `⚠️ <b>${active.length} פרויקטים פעילים</b> — מעל המגבלה שהגדרת (${limit}).`;
   }
   renderRoutine();
   renderLists();
@@ -135,7 +137,8 @@ function updateStatusWarn() {
   const status = $("#proj-status").value;
   const others = activeProjects().filter((p) => p.id !== editingProjectId).length;
   const warn = $("#proj-status-warn");
-  const show = status === "active" && others >= ACTIVE_LIMIT && !isRoutine(projectById(editingProjectId));
+  const limit = activeLimit();
+  const show = limit && status === "active" && others >= limit && !isRoutine(projectById(editingProjectId));
   warn.classList.toggle("hidden", !show);
   if (show) warn.textContent = `כבר יש ${others} פעילים. זה יהיה ה-${others + 1} — אולי להקפיא אחד אחר?`;
 }
